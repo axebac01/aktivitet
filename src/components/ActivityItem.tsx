@@ -29,6 +29,8 @@ interface OrderItem {
   articleId?: string;
   quantity?: number;
   price?: string;
+  orderRowId?: string;
+  totalIncludingVat?: string;
 }
 
 export const ActivityItem: React.FC<ActivityItemProps> = ({ 
@@ -111,37 +113,47 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   const renderOrderDetails = () => {
     if (activity.type !== 'call' || !activity.orderDetails) return null;
     
+    console.log('Rendering order details for activity:', activity.id);
+    console.log('Order details structure:', JSON.stringify(activity.orderDetails, null, 2));
+    
+    // Check if orderDetails is directly an array (from the API structure)
+    const orderItems = Array.isArray(activity.orderDetails) 
+      ? activity.orderDetails 
+      : Array.isArray(activity.orderDetails.items) 
+        ? activity.orderDetails.items 
+        : null;
+    
     // Check if we actually have order items to display
-    const hasItems = activity.orderDetails.items && Array.isArray(activity.orderDetails.items) && activity.orderDetails.items.length > 0;
+    const hasItems = orderItems && orderItems.length > 0;
     
-    // Debug log to check order details
-    console.log('Order details:', activity.orderDetails);
+    console.log('Has items:', hasItems, 'Items count:', orderItems?.length);
     
-    // Log article IDs and product names to help with debugging
     if (hasItems) {
-      // Cast items to OrderItem[] to fix TypeScript errors
-      const items = activity.orderDetails.items as OrderItem[];
-      console.log('Order items:', items);
-      console.log('Product names:', items.map(item => item.productName));
+      console.log('First item:', orderItems[0]);
     }
+    
+    // Calculate total value if it's not already provided
+    const totalValue = activity.orderDetails.totalValue || 
+      (orderItems && orderItems.reduce((sum, item) => 
+        sum + (parseFloat(item.totalIncludingVat || '0') || 0), 0).toFixed(2));
     
     return (
       <div className="mt-3">
-        {activity.orderDetails.totalValue && (
+        {totalValue && parseFloat(totalValue) > 0 && (
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-1 text-sm text-green-700">
               <Tag size={16} />
               <span>Produkter</span>
             </div>
             <div className="text-2xl font-bold text-green-600">
-              {activity.orderDetails.totalValue} SEK
+              {totalValue} SEK
             </div>
           </div>
         )}
         
         {hasItems ? (
           <div className="space-y-2">
-            {(activity.orderDetails.items as OrderItem[]).map((item, index) => (
+            {orderItems.map((item: OrderItem, index: number) => (
               <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
                 <span className="font-medium">
                   {item.productName || item.name || (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt")}
