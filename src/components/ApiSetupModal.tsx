@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { crmApi, ApiCredentials } from '@/services/crmApi';
 import { toast } from '@/components/ui/sonner';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ApiSetupModalProps {
   open: boolean;
@@ -30,6 +31,11 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
     apiUrl: 'https://api.crmdata.se'
   });
   const [isValidating, setIsValidating] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success?: boolean;
+    message?: string;
+  } | null>(null);
 
   // Ladda befintliga inställningar när modal öppnas
   useEffect(() => {
@@ -38,6 +44,7 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
       if (savedCredentials) {
         setCredentials(savedCredentials);
       }
+      setTestResult(null); // Reset test result when modal opens
     }
   }, [open]);
 
@@ -46,6 +53,11 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
       ...prev,
       [field]: value
     }));
+    
+    // Reset test result when credentials change
+    if (testResult) {
+      setTestResult(null);
+    }
   };
 
   const handleSave = async () => {
@@ -63,6 +75,47 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
       toast.success("API-anslutningen är konfigurerad!");
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handleTest = async () => {
+    // Validera att obligatoriska fält är ifyllda
+    if (!credentials.username.trim() || !credentials.password.trim() || !credentials.schema.trim()) {
+      toast.error("Alla fält är obligatoriska för att testa anslutningen");
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      // Spara temporärt inställningarna för testet
+      crmApi.setApiCredentials(credentials);
+      
+      // Testa anslutningen
+      const result = await crmApi.testApiConnection();
+      
+      setTestResult({
+        success: result.success,
+        message: result.message
+      });
+      
+      if (result.success) {
+        toast.success("API-anslutningen fungerar!");
+      } else {
+        toast.error("Kunde inte ansluta till API:et");
+      }
+      
+      console.log("API test details:", result.details);
+    } catch (error) {
+      console.error("Test connection error:", error);
+      setTestResult({
+        success: false,
+        message: `Ett fel uppstod: ${error instanceof Error ? error.message : String(error)}`
+      });
+      toast.error("Ett oväntat fel uppstod vid test av anslutningen");
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -135,8 +188,32 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
               <p>Schema är ditt licensnamn, t.ex. "example@001"</p>
             </div>
           </div>
+          
+          {testResult && (
+            <div className={`p-3 rounded-md col-span-4 mt-2 flex items-start gap-2 ${
+              testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
+                                 'bg-red-50 text-red-800 border border-red-200'
+            }`}>
+              {testResult.success ? 
+                <CheckCircle2 size={18} className="text-green-500 mt-0.5" /> : 
+                <AlertCircle size={18} className="text-red-500 mt-0.5" />
+              }
+              <div>
+                <p className="font-medium">{testResult.success ? 'Anslutning lyckades' : 'Anslutningen misslyckades'}</p>
+                <p className="text-sm">{testResult.message}</p>
+              </div>
+            </div>
+          )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleTest} 
+            disabled={isTesting}
+            className="mr-auto"
+          >
+            {isTesting ? "Testar..." : "Testa anslutning"}
+          </Button>
           <Button 
             type="submit" 
             onClick={handleSave} 

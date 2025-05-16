@@ -117,6 +117,71 @@ class CrmApiService {
     return this.credentials;
   }
 
+  async testApiConnection(): Promise<{ success: boolean; message: string; details?: any }> {
+    if (!this.credentials) {
+      return { 
+        success: false, 
+        message: "Inga API-inloggningsuppgifter är inställda" 
+      };
+    }
+
+    console.log("Testing API connection with credentials:", {
+      url: this.apiUrl,
+      username: this.credentials.username,
+      schema: this.credentials.schema,
+      // Hiding password for security
+    });
+
+    try {
+      // Försök hämta bara en anteckning för att testa anslutningen
+      const response = await fetch(`${this.apiUrl}/notes?limit=1`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      console.log("API test response status:", response.status);
+      console.log("API test response headers:", [...response.headers.entries()]);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error response:", errorText);
+        
+        return { 
+          success: false, 
+          message: `API svarade med status ${response.status}`, 
+          details: {
+            status: response.status,
+            text: errorText
+          }
+        };
+      }
+      
+      const data = await response.json();
+      console.log("API test data:", data);
+      
+      // Kontrollera om vi fick någon data tillbaka
+      if (data && data.items) {
+        return { 
+          success: true, 
+          message: `Anslutning lyckades! Hittade ${data.items.length} anteckningar.`,
+          details: data
+        };
+      } else {
+        return { 
+          success: true,
+          message: "Anslutningen fungerar men inga anteckningar hittades.",
+          details: data
+        };
+      }
+    } catch (error) {
+      console.error("API connection test failed:", error);
+      return { 
+        success: false, 
+        message: `Anslutningsfel: ${error instanceof Error ? error.message : String(error)}`,
+        details: error
+      };
+    }
+  }
+
   async fetchActivities(): Promise<CrmActivity[]> {
     console.log("Fetching activities at", new Date().toISOString());
     this.lastFetchTime = Date.now();
@@ -170,10 +235,13 @@ class CrmApiService {
       });
       
       if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
+        const errorText = await response.text();
+        console.error(`Notes API error (${response.status}):`, errorText);
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
+      console.log("Notes API response:", data);
       return data.items || [];
     } catch (error) {
       console.error("Error fetching notes:", error);
@@ -297,11 +365,17 @@ class CrmApiService {
     // Skapa Base64-kodad auth-sträng för Basic Auth
     const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
     
-    return {
+    const headers: HeadersInit = {
       'Authorization': `Basic ${authString}`,
-      // Ändrat från X-Schema till schema enligt API-dokumentationen
       'schema': this.credentials.schema,
     };
+    
+    console.log("Using API headers:", {
+      Authorization: "Basic ********", // Don't log full auth string
+      schema: this.credentials.schema
+    });
+    
+    return headers;
   }
 
   // För framtida implementation - skicka meddelanden till CRM API
