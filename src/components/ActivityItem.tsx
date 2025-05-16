@@ -21,6 +21,16 @@ interface ActivityItemProps {
   isNew?: boolean;
 }
 
+// Define an extended interface for order items to match the actual data structure
+interface OrderItem {
+  id?: string;
+  name?: string;
+  productName?: string;
+  articleId?: string;
+  quantity?: number;
+  price?: string;
+}
+
 export const ActivityItem: React.FC<ActivityItemProps> = ({ 
   activity, 
   isNew = false 
@@ -109,7 +119,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     
     // Log article IDs to help with debugging
     if (hasItems) {
-      console.log('Order items article IDs:', activity.orderDetails.items.map(item => item.articleId));
+      // Cast items to OrderItem[] to fix TypeScript errors
+      const items = activity.orderDetails.items as OrderItem[];
+      console.log('Order items article IDs:', items.map(item => item.articleId));
     }
     
     return (
@@ -128,7 +140,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
         
         {hasItems ? (
           <div className="space-y-2">
-            {activity.orderDetails.items.map((item, index) => {
+            {(activity.orderDetails.items as OrderItem[]).map((item, index) => {
               // Try to get product name from different sources
               const productName = 
                 item.productName || // Try from productName field
