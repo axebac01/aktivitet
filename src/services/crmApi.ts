@@ -539,7 +539,7 @@ class CrmApiService {
 
   // Hitta användarens namn baserat på createdBy
   private getUserName(createdBy?: string): string {
-    if (!createdBy) return 'Okänd användare';
+    if (!createdBy) return createdBy || '';
     
     // Extract the username from the createdBy field and normalize it
     // Remove @001 or similar suffix and convert to lowercase for consistent lookup
@@ -550,8 +550,8 @@ class CrmApiService {
     console.log(`Looking up user ${userId}, found: ${userName || 'not found'}`);
     if (userName) return userName;
     
-    // Fallbacks if no mapping found
-    return 'Okänd användare'; 
+    // Return the userId as fallback instead of "Okänd användare"
+    return createdBy; 
   }
 
   // Omvandla ApiNote till CrmActivity
@@ -628,7 +628,7 @@ class CrmApiService {
     console.log("Converting todo to activity:", todo);
     
     // Extract userName from multiple possible fields with user mapping
-    let userName = 'Okänd användare';
+    let userName = '';
     if (todo.createdBy) {
       userName = this.getUserName(todo.createdBy);
     } else if (todo.user && todo.user.name) {
@@ -693,7 +693,7 @@ class CrmApiService {
     console.log("Converting order to activity:", order);
     
     // Extract userName from multiple possible fields with user mapping
-    let userName = 'Okänd användare';
+    let userName = '';
     if (order.createdBy) {
       userName = this.getUserName(order.createdBy);
     } else if (order.user && order.user.name) {

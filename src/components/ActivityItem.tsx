@@ -45,7 +45,12 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
-    if (!name || name === 'Okänd användare') return 'UK';
+    if (!name) return 'UK';
+    
+    // If it's a user ID, just return the first two characters
+    if (name.includes('@')) {
+      return name.substring(0, 2).toUpperCase();
+    }
     
     return name
       .split(' ')
@@ -106,7 +111,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
                 <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
               ) : null}
               <AvatarFallback className="bg-crm-blue/10 text-crm-blue font-medium">
-                {getInitials(activity.user.name)}
+                {getInitials(activity.user.name || activity.user.id)}
               </AvatarFallback>
             </Avatar>
             
@@ -114,7 +119,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-crm-navy">
-                    {activity.user.name || 'Okänd användare'}
+                    {activity.user.name || activity.user.id.replace(/@001$/, '')}
                   </span>
                   <span className="text-xs bg-white/80 shadow-sm px-2 py-0.5 rounded-full flex items-center gap-1 border border-gray-100">
                     {getActivityIcon(activity.type)}
