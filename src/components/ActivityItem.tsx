@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -134,10 +133,11 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     
     // Calculate total value if it's not already provided
     const totalValue = activity.orderDetails.totalValue || 
-      (orderItems && orderItems.reduce((sum: number, item: OrderItem) => {
+      (orderItems ? orderItems.reduce((sum: number, item: any) => {
+        // Make sure we're working with numbers
         const itemValue = item.totalIncludingVat ? parseFloat(item.totalIncludingVat) : 0;
         return sum + itemValue;
-      }, 0).toFixed(2));
+      }, 0).toFixed(2) : "0");
     
     return (
       <div className="mt-3">
