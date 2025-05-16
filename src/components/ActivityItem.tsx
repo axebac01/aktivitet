@@ -10,7 +10,8 @@ import {
   FileText, 
   Phone, 
   CheckSquare, 
-  User 
+  User,
+  Building
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -44,6 +45,8 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
+    if (!name) return 'UK';
+    
     return name
       .split(' ')
       .map((n) => n[0])
@@ -74,6 +77,19 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     }
   };
 
+  // Get related entity icon
+  const getRelatedIcon = (type?: string) => {
+    if (!type) return <Building size={12} className="text-crm-blue" />;
+    
+    switch (type.toLowerCase()) {
+      case 'customer':
+      case 'company': 
+        return <Building size={12} className="text-crm-blue" />;
+      default:
+        return <User size={12} className="text-crm-blue" />;
+    }
+  };
+
   return (
     <div
       className={`mb-4 transition-all ${
@@ -97,7 +113,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-crm-navy">{activity.user.name}</span>
+                  <span className="font-medium text-crm-navy">{activity.user.name || 'Okänd användare'}</span>
                   <span className="text-xs bg-white/80 shadow-sm px-2 py-0.5 rounded-full flex items-center gap-1 border border-gray-100">
                     {getActivityIcon(activity.type)}
                     <span className="capitalize font-medium text-crm-darkGray">{activity.type}</span>
@@ -112,7 +128,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               
               {activity.relatedTo && (
                 <div className="mt-2 text-xs flex items-center gap-1 text-crm-darkGray">
-                  <User size={12} className="text-crm-blue" />
+                  {getRelatedIcon(activity.relatedTo.type)}
                   <span>
                     Relaterad till:{' '}
                     <span className="font-medium text-crm-blue">
