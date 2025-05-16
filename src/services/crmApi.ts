@@ -271,7 +271,8 @@ class CrmApiService {
       users.forEach(user => {
         const fullName = `${user.Fname || ''} ${user.Lname || ''}`.trim();
         if (user.userid && fullName) {
-          const userId = user.userid.toLowerCase().replace('@001', '');
+          // Important: Clean and normalize the user ID by removing the domain suffix
+          const userId = user.userid.toLowerCase().replace(/@001$/, '');
           this.userMap.set(userId, fullName);
           // Log each user mapping for debugging
           console.log(`User mapping: ID ${userId} => ${fullName}`);
@@ -526,8 +527,9 @@ class CrmApiService {
   private getUserName(createdBy?: string): string {
     if (!createdBy) return 'Okänd användare';
     
-    // Extract the username from the createdBy field (remove @001 or similar suffix)
-    const userId = createdBy.toLowerCase().replace('@001', '');
+    // Extract the username from the createdBy field and normalize it
+    // Remove @001 or similar suffix and convert to lowercase for consistent lookup
+    const userId = createdBy.toLowerCase().replace(/@001$/, '');
     
     // Check if we have a mapping for this user
     const userName = this.userMap.get(userId);
