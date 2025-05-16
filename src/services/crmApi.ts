@@ -18,67 +18,118 @@ export interface CrmActivity {
   };
 }
 
-// This is a mock API service - you'll need to replace this with your actual API implementation
+// Interface för API-autentisering
+export interface ApiCredentials {
+  username: string;
+  password: string;
+  schema: string;
+  apiUrl: string;
+}
+
+// Interface för en anteckning från API
+interface ApiNote {
+  id: string;
+  text: string;
+  created: string;
+  user: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+  customer?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Interface för en todo från API
+interface ApiTodo {
+  id: string;
+  title: string;
+  description: string;
+  triggerDate: string;
+  user: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+  customer?: {
+    id: string;
+    name: string;
+  };
+}
+
 class CrmApiService {
   private apiUrl: string = '';
+  private credentials: ApiCredentials | null = null;
   private pollingInterval: number | null = null;
   private listeners: ((activities: CrmActivity[]) => void)[] = [];
 
   constructor() {
-    // Using localStorage to allow end-users to set their API URL
-    const savedApiUrl = localStorage.getItem('crmApiUrl');
-    if (savedApiUrl) {
-      this.apiUrl = savedApiUrl;
+    // Försöker ladda sparade credentials från localStorage
+    const savedCredentials = localStorage.getItem('crmApiCredentials');
+    if (savedCredentials) {
+      try {
+        this.credentials = JSON.parse(savedCredentials);
+        this.apiUrl = this.credentials.apiUrl;
+      } catch (error) {
+        console.error("Failed to parse saved credentials:", error);
+        localStorage.removeItem('crmApiCredentials');
+      }
     }
   }
 
-  setApiUrl(url: string): void {
-    this.apiUrl = url;
-    localStorage.setItem('crmApiUrl', url);
-    toast.success("API URL has been saved!");
+  setApiCredentials(credentials: ApiCredentials): void {
+    this.credentials = credentials;
+    this.apiUrl = credentials.apiUrl;
+    localStorage.setItem('crmApiCredentials', JSON.stringify(credentials));
+    toast.success("API-inställningar har sparats!");
   }
 
   getApiUrl(): string {
     return this.apiUrl;
   }
 
+  getCredentials(): ApiCredentials | null {
+    return this.credentials;
+  }
+
   async fetchActivities(): Promise<CrmActivity[]> {
-    if (!this.apiUrl) {
-      console.log("No API URL set");
-      return this.getMockActivities(); // Return mock data when no API URL is set
+    if (!this.credentials) {
+      console.log("Inga API-inloggningsuppgifter är inställda");
+      return this.getMockActivities(); // Returnera mockdata när ingen API-URL är inställd
     }
 
     try {
-      console.log("Fetching activities from:", this.apiUrl);
-      const response = await fetch(`${this.apiUrl}/activities`);
+      const notes = await this.fetchNotes();
+      const todos = await this.fetchTodos();
       
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+      // Konvertera och kombinera notes och todos till activities
+      const noteActivities = notes.map(note => this.convertNoteToActivity(note));
+      const todoActivities = todos.map(todo => this.convertTodoToActivity(todo));
       
-      const data = await response.json();
-      return data;
+      // Kombinera och sortera efter timestamp, nyast först
+      const allActivities = [...noteActivities, ...todoActivities].sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
+      return allActivities;
     } catch (error) {
       console.error("Error fetching activities:", error);
-      toast.error("Failed to fetch activities. Using mock data instead.");
-      return this.getMockActivities(); // Fallback to mock data on error
+      toast.error("Kunde inte hämta aktiviteter. Använder testdata istället.");
+      return this.getMockActivities(); // Fallback till mockdata vid fel
     }
   }
 
-  // For future implementation - sending messages to the CRM API
-  async sendMessage(content: string): Promise<CrmActivity | null> {
-    if (!this.apiUrl) {
-      toast.error("Please set your CRM API URL first");
-      return null;
+  // Hämta alla anteckningar från API
+  private async fetchNotes(): Promise<ApiNote[]> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
     }
-
+    
     try {
-      const response = await fetch(`${this.apiUrl}/activities/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
+      const response = await fetch(`${this.apiUrl}/notes`, {
+        headers: this.getAuthHeaders(),
       });
       
       if (!response.ok) {
@@ -86,28 +137,141 @@ class CrmApiService {
       }
       
       const data = await response.json();
-      return data;
+      return data.items || [];
+    } catch (error) {
+      console.error("Error fetching notes:", error);
+      throw error;
+    }
+  }
+
+  // Hämta alla todos från API
+  private async fetchTodos(): Promise<ApiTodo[]> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+    
+    try {
+      const response = await fetch(`${this.apiUrl}/todos`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.items || [];
+    } catch (error) {
+      console.error("Error fetching todos:", error);
+      throw error;
+    }
+  }
+
+  // Omvandla ApiNote till CrmActivity
+  private convertNoteToActivity(note: ApiNote): CrmActivity {
+    return {
+      id: note.id,
+      type: 'note',
+      content: note.text,
+      timestamp: note.created,
+      user: {
+        id: note.user.id,
+        name: note.user.name,
+      },
+      relatedTo: note.customer ? {
+        type: 'customer',
+        id: note.customer.id,
+        name: note.customer.name
+      } : undefined
+    };
+  }
+
+  // Omvandla ApiTodo till CrmActivity
+  private convertTodoToActivity(todo: ApiTodo): CrmActivity {
+    return {
+      id: todo.id,
+      type: 'task',
+      content: `${todo.title}: ${todo.description}`,
+      timestamp: todo.triggerDate,
+      user: {
+        id: todo.user.id,
+        name: todo.user.name,
+      },
+      relatedTo: todo.customer ? {
+        type: 'customer',
+        id: todo.customer.id,
+        name: todo.customer.name
+      } : undefined
+    };
+  }
+
+  // Skapa auth headers för API-anrop
+  private getAuthHeaders(): HeadersInit {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+
+    // Skapa Base64-kodad auth-sträng för Basic Auth
+    const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
+    
+    return {
+      'Authorization': `Basic ${authString}`,
+      'X-Schema': this.credentials.schema,
+    };
+  }
+
+  // För framtida implementation - skicka meddelanden till CRM API
+  async sendMessage(content: string): Promise<CrmActivity | null> {
+    if (!this.credentials) {
+      toast.error("Vänligen konfigurera dina API-inställningar först");
+      return null;
+    }
+
+    try {
+      // Eftersom API:et inte har en specifik endpoint för att skicka meddelanden,
+      // kan vi använda notes-endpointen för att skapa en ny anteckning
+      // Detta behöver anpassas när API:et stödjer direkta meddelanden
+      
+      // Mock-implementering tills API stöder det
+      const mockActivity: CrmActivity = {
+        id: Date.now().toString(),
+        type: 'message',
+        content: content,
+        timestamp: new Date().toISOString(),
+        user: {
+          id: '100',
+          name: 'Aktiv användare',
+        }
+      };
+      
+      // Meddela lyssnare om den nya aktiviteten
+      const currentActivities = await this.fetchActivities();
+      const updatedActivities = [mockActivity, ...currentActivities];
+      this.listeners.forEach(listener => listener(updatedActivities));
+      
+      toast.success("Meddelande skickat");
+      return mockActivity;
     } catch (error) {
       console.error("Error sending message:", error);
-      toast.error("Failed to send message");
+      toast.error("Kunde inte skicka meddelandet");
       return null;
     }
   }
 
-  // Subscribe to activity updates
+  // Prenumerera på aktivitetsuppdateringar
   subscribeToActivities(callback: (activities: CrmActivity[]) => void): () => void {
     this.listeners.push(callback);
     
-    // Start polling if this is the first subscriber
+    // Starta pollingen om detta är första prenumeranten
     if (this.listeners.length === 1) {
       this.startPolling();
     }
     
-    // Return unsubscribe function
+    // Returnera avprenumereringsfunktion
     return () => {
       this.listeners = this.listeners.filter(listener => listener !== callback);
       
-      // Stop polling if no more subscribers
+      // Stoppa pollingen om det inte finns fler prenumeranter
       if (this.listeners.length === 0) {
         this.stopPolling();
       }
@@ -115,7 +279,7 @@ class CrmApiService {
   }
   
   private startPolling(): void {
-    // Poll every 30 seconds
+    // Polla var 30:e sekund
     this.pollingInterval = window.setInterval(async () => {
       try {
         const activities = await this.fetchActivities();
@@ -133,7 +297,7 @@ class CrmApiService {
     }
   }
 
-  // Mock data for development and testing
+  // Mockdata för utveckling och testning
   private getMockActivities(): CrmActivity[] {
     return [
       {
