@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
@@ -16,6 +17,13 @@ export const ActivityStream: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const autoRefreshIntervalRef = useRef<number | null>(null);
 
+  // Filter activities to only show notes, new customers, and orders (excluding tasks)
+  const filterActivities = (activities: CrmActivity[]): CrmActivity[] => {
+    return activities.filter(activity => 
+      activity.type !== 'task' // Exclude tasks
+    );
+  };
+
   // Function to load activities
   const loadActivities = async () => {
     setLoading(true);
@@ -29,8 +37,12 @@ export const ActivityStream: React.FC = () => {
         console.log(`Activity ${activity.id}: User ${activity.user.name}`);
       });
       
-      setActivities(data);
-      previousActivitiesRef.current = data;
+      // Filter out task-type activities
+      const filteredData = filterActivities(data);
+      console.log(`After filtering tasks, ${filteredData.length} activities remain`);
+      
+      setActivities(filteredData);
+      previousActivitiesRef.current = filteredData;
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to load activities:", error);
@@ -57,8 +69,11 @@ export const ActivityStream: React.FC = () => {
       console.log("Refresh fetched", data.length, "activities");
       console.log("Activities with company data:", data.filter(a => a.relatedTo).length);
       
+      // Filter out task-type activities before processing
+      const filteredData = filterActivities(data);
+      
       // Find new activities using the improved function
-      const newItems = findNewActivities(data, previousActivitiesRef.current);
+      const newItems = findNewActivities(filteredData, previousActivitiesRef.current);
       
       console.log(`Found ${newItems.length} new activities`);
       console.log('New activities:', newItems);
@@ -66,13 +81,13 @@ export const ActivityStream: React.FC = () => {
       if (newItems.length > 0) {
         setNewActivities(newItems);
         setTimeout(() => {
-          setActivities(data);
+          setActivities(filteredData);
           setNewActivities([]);
-          previousActivitiesRef.current = data;
+          previousActivitiesRef.current = filteredData;
         }, 3000); // After highlighting, merge them into the main list
       } else {
-        setActivities(data);
-        previousActivitiesRef.current = data;
+        setActivities(filteredData);
+        previousActivitiesRef.current = filteredData;
       }
       setLastUpdated(new Date());
       toast.success(`${newItems.length ? newItems.length + " nya aktiviteter hittades" : "Inga nya aktiviteter"}`);
@@ -109,8 +124,11 @@ export const ActivityStream: React.FC = () => {
     
     // Subscribe to activity updates
     const unsubscribe = crmApi.subscribeToActivities((updatedActivities) => {
+      // Filter activities to remove tasks
+      const filteredActivities = filterActivities(updatedActivities);
+      
       // Find new activities using the improved function
-      const newItems = findNewActivities(updatedActivities, previousActivitiesRef.current);
+      const newItems = findNewActivities(filteredActivities, previousActivitiesRef.current);
       
       if (newItems.length > 0) {
         console.log(`Subscription found ${newItems.length} new activities`);
@@ -118,9 +136,9 @@ export const ActivityStream: React.FC = () => {
         toast.success(`${newItems.length} nya aktiviteter hittades`);
         
         setTimeout(() => {
-          setActivities(updatedActivities);
+          setActivities(filteredActivities);
           setNewActivities([]);
-          previousActivitiesRef.current = updatedActivities;
+          previousActivitiesRef.current = filteredActivities;
           setLastUpdated(new Date());
         }, 3000); // After highlighting, merge them into the main list
       }

@@ -878,8 +878,8 @@ class CrmApiService {
       },
       {
         id: '2',
-        type: 'call',
-        content: 'Ringde Johan för att bekräfta mötet nästa vecka. Han planerar att ta med sin tekniska chef.',
+        type: 'call', // This represents an order in our system
+        content: 'Ny order sparad: Server uppdatering värd 56,000 SEK',
         timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
         user: {
           id: '102',
@@ -895,17 +895,22 @@ class CrmApiService {
       {
         id: '3',
         type: 'message',
-        content: 'Någon som har kontaktuppgifter till Pernillas ersättare? Behöver komma i kontakt med dem idag!',
+        content: 'Nytt företag har lagts till i CRM-systemet',
         timestamp: new Date(Date.now() - 1000 * 60 * 270).toISOString(),
         user: {
           id: '103',
           name: 'Lina Karlsson',
           avatar: 'https://i.pravatar.cc/150?img=5'
+        },
+        relatedTo: {
+          type: 'customer',
+          id: '2004',
+          name: 'Nytt Bolag AB'
         }
       },
       {
         id: '4',
-        type: 'task',
+        type: 'note',
         content: 'Skickat avtal till SignRight för signering av kunden',
         timestamp: new Date(Date.now() - 1000 * 60 * 480).toISOString(),
         user: {
@@ -913,15 +918,15 @@ class CrmApiService {
           name: 'Niklas Lundgren'
         },
         relatedTo: {
-          type: 'opportunity',
+          type: 'customer',
           id: '2001',
-          name: 'Service renewal Q2'
+          name: 'Teknikbolaget AB'
         }
       },
       {
         id: '5',
-        type: 'note',
-        content: 'Viktig notering: Alla kundens servrar måste uppgraderas innan årsskiftet på grund av säkerhetsskäl. Diskuteras på nästa möte.',
+        type: 'call', // This represents an order in our system
+        content: 'Ny order registrerad: Supportavtal värd 15,000 SEK/månad',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
         user: {
           id: '105',
@@ -929,9 +934,9 @@ class CrmApiService {
           avatar: 'https://i.pravatar.cc/150?img=25'
         },
         relatedTo: {
-          type: 'project',
+          type: 'customer',
           id: '3001',
-          name: 'IT Infrastructure Upgrade'
+          name: 'IT Solutions AB'
         }
       }
     ];
