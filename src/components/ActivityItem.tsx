@@ -134,12 +134,14 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     
     // Calculate total value if it's not already provided
     const totalValue = activity.orderDetails.totalValue || 
-      (orderItems && orderItems.reduce((sum, item) => 
-        sum + (parseFloat(item.totalIncludingVat || '0') || 0), 0).toFixed(2));
+      (orderItems && orderItems.reduce((sum: number, item: OrderItem) => {
+        const itemValue = item.totalIncludingVat ? parseFloat(item.totalIncludingVat) : 0;
+        return sum + itemValue;
+      }, 0).toFixed(2));
     
     return (
       <div className="mt-3">
-        {totalValue && parseFloat(totalValue) > 0 && (
+        {totalValue && parseFloat(String(totalValue)) > 0 && (
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-1 text-sm text-green-700">
               <Tag size={16} />
