@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -147,56 +146,52 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="api-url" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="api-url">
               API URL
             </Label>
             <Input
               id="api-url"
-              className="col-span-3"
               value={credentials.apiUrl}
               onChange={(e) => handleInputChange('apiUrl', e.target.value)}
               placeholder="https://api.crmdata.se"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="username" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="username">
               Användarnamn
             </Label>
             <Input
               id="username"
-              className="col-span-3"
               value={credentials.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
               placeholder="api@001_api"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="password" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="password">
               Lösenord
             </Label>
             <Input
               id="password"
               type="password"
-              className="col-span-3"
               value={credentials.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="••••••••"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="schema" className="text-right">
+          <div className="grid gap-2">
+            <Label htmlFor="schema">
               Schema
             </Label>
             <Input
               id="schema"
-              className="col-span-3"
               value={credentials.schema}
               onChange={(e) => handleInputChange('schema', e.target.value)}
               placeholder="example@001"
             />
           </div>
-          <div className="col-span-4 text-xs bg-blue-50 text-blue-800 p-3 rounded-md border border-blue-100 flex items-start gap-2">
+          <div className="text-xs bg-blue-50 text-blue-800 p-3 rounded-md border border-blue-100 flex items-start gap-2">
             <Info size={16} className="text-blue-500 mt-0.5" />
             <div>
               <p className="font-medium">API Authentication Information</p>
@@ -207,7 +202,7 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
           </div>
           
           {testResult && (
-            <div className={`p-3 rounded-md col-span-4 mt-2 flex items-start gap-2 ${
+            <div className={`p-3 rounded-md flex items-start gap-2 ${
               testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
                                  'bg-red-50 text-red-800 border border-red-200'
             }`}>
