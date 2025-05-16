@@ -15,6 +15,15 @@ export interface CrmActivity {
     id: string;
     name: string;
   };
+  orderDetails?: {
+    totalValue?: string;
+    items?: Array<{
+      id?: string;
+      name: string;
+      quantity?: number;
+      price?: string;
+    }>;
+  };
 }
 
 // Interface för API-autentisering
@@ -88,6 +97,16 @@ interface ApiOrder {
     id?: string;
     name: string;
   };
+  totalExVat?: string;
+  orderRows?: Array<{
+    id?: string;
+    productId?: string;
+    productName?: string;
+    articleNumber?: string;
+    quantity?: number;
+    price?: string;
+    totalRowPrice?: string;
+  }>;
 }
 
 // Interface för API svar med pagination
@@ -507,7 +526,8 @@ class CrmApiService {
     
     try {
       console.log("Fetching orders from API");
-      const response = await fetch(`${this.apiUrl}/orders?viewPage=1`, {
+      // Get orders sorted by created date, newest first
+      const response = await fetch(`${this.apiUrl}/orders?sort=created:desc&viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
       
@@ -518,17 +538,52 @@ class CrmApiService {
       }
       
       const data = await response.json();
+      console.log("Orders API response:", data);
       
       // Hanterar olika svarsformat baserat på API-dokumentationen
+      let orders: ApiOrder[] = [];
+      
       if (Array.isArray(data)) {
-        return data;
+        orders = data;
       } else if (data && data.items) {
-        return data.items;
+        orders = data.items;
       } else if (data && data.data) {
-        return data.data;
+        orders = data.data;
       }
       
-      return [];
+      // Also fetch order rows if available
+      for (const order of orders) {
+        try {
+          if (order.id) {
+            const rowsResponse = await fetch(`${this.apiUrl}/orderrows?orderId=${order.id}`, {
+              headers: this.getAuthHeaders(),
+            });
+            
+            if (rowsResponse.ok) {
+              const rowsData = await rowsResponse.json();
+              let rows = [];
+              
+              if (Array.isArray(rowsData)) {
+                rows = rowsData;
+              } else if (rowsData && rowsData.items) {
+                rows = rowsData.items;
+              } else if (rowsData && rowsData.data) {
+                rows = rowsData.data;
+              }
+              
+              order.orderRows = rows;
+              console.log(`Fetched ${rows.length} order rows for order ${order.id}`);
+            } else {
+              console.warn(`Failed to fetch order rows for order ${order.id}`);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching order rows for order ${order.id}:`, error);
+        }
+      }
+      
+      console.log(`Processed ${orders.length} orders`);
+      return orders;
     } catch (error) {
       console.error("Error fetching orders:", error);
       // Return empty array instead of throwing to avoid breaking all activities
@@ -733,6 +788,17 @@ class CrmApiService {
       }
     }
     
+    // Create order details object for display in the UI
+    const orderDetails = {
+      totalValue: order.totalExVat,
+      items: order.orderRows?.map(row => ({
+        id: row.id,
+        name: row.productName || row.articleNumber || 'Ospecificerad produkt',
+        quantity: row.quantity,
+        price: row.price
+      }))
+    };
+    
     const activity: CrmActivity = {
       id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
@@ -746,7 +812,8 @@ class CrmApiService {
         type: 'customer',
         id: customerId || 'unknown',
         name: customerName
-      } : undefined
+      } : undefined,
+      orderDetails: orderDetails
     };
     
     console.log("Converted order activity:", activity);
@@ -893,7 +960,7 @@ class CrmApiService {
       {
         id: '2',
         type: 'call', // This represents an order in our system
-        content: 'Ny order sparad: Server uppdatering värd 56,000 SEK',
+        content: 'Ny order sparad: Server uppdatering',
         timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
         user: {
           id: '102',
@@ -904,6 +971,13 @@ class CrmApiService {
           type: 'customer',
           id: '1002',
           name: 'Teknik Konsult AB'
+        },
+        orderDetails: {
+          totalValue: '56,000',
+          items: [
+            { name: 'Server Dell PowerEdge R740', quantity: 2, price: '24,000' },
+            { name: 'Installation och konfiguration', quantity: 1, price: '8,000' }
+          ]
         }
       },
       {
@@ -940,7 +1014,7 @@ class CrmApiService {
       {
         id: '5',
         type: 'call', // This represents an order in our system
-        content: 'Ny order registrerad: Supportavtal värd 15,000 SEK/månad',
+        content: 'Ny order registrerad: Supportavtal',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
         user: {
           id: '105',
@@ -951,6 +1025,12 @@ class CrmApiService {
           type: 'customer',
           id: '3001',
           name: 'IT Solutions AB'
+        },
+        orderDetails: {
+          totalValue: '15,000',
+          items: [
+            { name: 'Premium Support (månadsavgift)', quantity: 1, price: '15,000' }
+          ]
         }
       }
     ];

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
@@ -17,7 +16,7 @@ export const ActivityStream: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const autoRefreshIntervalRef = useRef<number | null>(null);
 
-  // Filter activities to only show notes, new customers, and orders (excluding tasks)
+  // Filter activities to only show notes and orders (excluding tasks)
   const filterActivities = (activities: CrmActivity[]): CrmActivity[] => {
     return activities.filter(activity => 
       activity.type !== 'task' // Exclude tasks
@@ -41,8 +40,13 @@ export const ActivityStream: React.FC = () => {
       const filteredData = filterActivities(data);
       console.log(`After filtering tasks, ${filteredData.length} activities remain`);
       
-      setActivities(filteredData);
-      previousActivitiesRef.current = filteredData;
+      // Sort by timestamp (newest first)
+      const sortedData = filteredData.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
+      setActivities(sortedData);
+      previousActivitiesRef.current = sortedData;
       setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to load activities:", error);
@@ -72,8 +76,13 @@ export const ActivityStream: React.FC = () => {
       // Filter out task-type activities before processing
       const filteredData = filterActivities(data);
       
+      // Sort by timestamp (newest first)
+      const sortedData = filteredData.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      
       // Find new activities using the improved function
-      const newItems = findNewActivities(filteredData, previousActivitiesRef.current);
+      const newItems = findNewActivities(sortedData, previousActivitiesRef.current);
       
       console.log(`Found ${newItems.length} new activities`);
       console.log('New activities:', newItems);
@@ -81,13 +90,13 @@ export const ActivityStream: React.FC = () => {
       if (newItems.length > 0) {
         setNewActivities(newItems);
         setTimeout(() => {
-          setActivities(filteredData);
+          setActivities(sortedData);
           setNewActivities([]);
-          previousActivitiesRef.current = filteredData;
+          previousActivitiesRef.current = sortedData;
         }, 3000); // After highlighting, merge them into the main list
       } else {
-        setActivities(filteredData);
-        previousActivitiesRef.current = filteredData;
+        setActivities(sortedData);
+        previousActivitiesRef.current = sortedData;
       }
       setLastUpdated(new Date());
       toast.success(`${newItems.length ? newItems.length + " nya aktiviteter hittades" : "Inga nya aktiviteter"}`);

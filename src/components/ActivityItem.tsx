@@ -11,7 +11,8 @@ import {
   Phone, 
   CheckSquare, 
   User,
-  Building
+  Building,
+  Receipt
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -37,7 +38,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return <FileText size={18} className="text-crm-blue" />;
       case 'message': return <MessageSquare size={18} className="text-crm-lightBlue" />;
-      case 'call': return <Phone size={18} className="text-green-600" />; // Changed to green for orders
+      case 'call': return <Receipt size={18} className="text-green-600" />; // Changed to Receipt for orders
       case 'task': return <CheckSquare size={18} className="text-crm-orange" />;
       default: return <MessageSquare size={18} className="text-crm-darkGray" />;
     }
@@ -65,7 +66,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return 'bg-gradient-to-br from-white to-blue-50';
       case 'message': return 'bg-gradient-to-br from-white to-green-50';
-      case 'call': return 'bg-gradient-to-br from-white to-green-50'; // Changed to green for orders
+      case 'call': return 'bg-gradient-to-br from-white to-green-50'; // Green for orders
       case 'task': return 'bg-gradient-to-br from-white to-orange-50';
       default: return 'bg-gradient-to-br from-white to-gray-50';
     }
@@ -76,7 +77,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return 'border-crm-blue';
       case 'message': return 'border-crm-lightBlue';
-      case 'call': return 'border-green-500'; // Changed to green for orders
+      case 'call': return 'border-green-500'; // Green for orders
       case 'task': return 'border-crm-orange';
       default: return 'border-crm-darkGray';
     }
@@ -93,6 +94,40 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       default:
         return <User size={12} className="text-crm-blue" />;
     }
+  };
+
+  // Format order details for display
+  const renderOrderDetails = () => {
+    if (activity.type !== 'call' || !activity.orderDetails) return null;
+    
+    return (
+      <div className="mt-2 text-xs bg-white/80 p-2 rounded-md border border-green-100">
+        {activity.orderDetails.totalValue && (
+          <div className="font-medium text-green-700 flex justify-between">
+            <span>Ordervärde (ex moms):</span>
+            <span>{activity.orderDetails.totalValue} SEK</span>
+          </div>
+        )}
+        
+        {activity.orderDetails.items && activity.orderDetails.items.length > 0 && (
+          <div className="mt-1">
+            <p className="font-medium text-gray-600 mb-1">Produkter:</p>
+            <ul className="space-y-1 pl-2">
+              {activity.orderDetails.items.map((item, index) => (
+                <li key={index} className="flex justify-between">
+                  <span>{item.name}</span>
+                  {item.quantity && item.price && (
+                    <span className="text-gray-600">
+                      {item.quantity} × {item.price} SEK
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -143,6 +178,8 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               <div className="text-sm text-gray-700 whitespace-pre-wrap">
                 {activity.content}
               </div>
+              
+              {renderOrderDetails()}
             </div>
           </div>
         </CardContent>
