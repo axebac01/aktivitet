@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Clock, Eye, MessageSquare } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
+import { format, parseISO } from 'date-fns';
+import { sv } from 'date-fns/locale';
 
 export const ActivityStream: React.FC = () => {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -169,13 +171,9 @@ export const ActivityStream: React.FC = () => {
     };
   }, [autoRefresh]);
 
-  // Format the last updated time
+  // Format the last updated time using swedish locale
   const formattedLastUpdated = lastUpdated 
-    ? new Intl.DateTimeFormat('sv-SE', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-      }).format(lastUpdated)
+    ? format(lastUpdated, 'HH:mm:ss', { locale: sv })
     : null;
 
   // Render loading skeletons

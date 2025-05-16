@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { CrmActivity } from '@/services/crmApi';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,8 +40,13 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   // Format timestamp to a friendly string
   const formattedTime = React.useMemo(() => {
     try {
-      return format(new Date(activity.timestamp), 'HH:mm, d MMM', { locale: sv });
+      // Parse the ISO string and adjust for the timezone difference
+      const date = parseISO(activity.timestamp);
+      
+      // Format the date using Swedish locale
+      return format(date, 'HH:mm, d MMM', { locale: sv });
     } catch (e) {
+      console.error("Date parsing error:", e);
       return 'Invalid date';
     }
   }, [activity.timestamp]);
