@@ -5,6 +5,7 @@ import { ActivityItem } from '@/components/ActivityItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Clock } from 'lucide-react';
+import { toast } from '@/components/ui/sonner'; // Add this import for toast notifications
 
 export const ActivityStream: React.FC = () => {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
