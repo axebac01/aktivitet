@@ -12,8 +12,8 @@ import {
   CheckSquare, 
   User,
   Building,
-  Receipt,
-  Package
+  Package,
+  Tag
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -107,26 +107,45 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     // Debug log to check order details
     console.log('Order details:', activity.orderDetails);
     
+    // Log article IDs to help with debugging
+    if (hasItems) {
+      console.log('Order items article IDs:', activity.orderDetails.items.map(item => item.articleId));
+    }
+    
     return (
       <div className="mt-3">
         {activity.orderDetails.totalValue && (
-          <div className="text-2xl font-bold text-green-600 mb-3">
-            {activity.orderDetails.totalValue} SEK
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-1 text-sm text-green-700">
+              <Tag size={16} />
+              <span>Produkter</span>
+            </div>
+            <div className="text-2xl font-bold text-green-600">
+              {activity.orderDetails.totalValue} SEK
+            </div>
           </div>
         )}
         
         {hasItems ? (
           <div className="space-y-2">
-            {activity.orderDetails.items.map((item, index) => (
-              <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
-                <span className="font-medium">{item.name || "Okänd produkt"}</span>
-                {item.quantity && item.price && (
-                  <span className="text-green-700 font-medium">
-                    {item.quantity} × {item.price} SEK
-                  </span>
-                )}
-              </div>
-            ))}
+            {activity.orderDetails.items.map((item, index) => {
+              // Try to get product name from different sources
+              const productName = 
+                item.productName || // Try from productName field
+                item.name ||       // Try from name field directly
+                (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt"); // Use article ID as fallback
+              
+              return (
+                <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
+                  <span className="font-medium">{productName}</span>
+                  {item.quantity && item.price && (
+                    <span className="text-green-700 font-medium">
+                      {item.quantity} × {item.price} SEK
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="text-gray-500 italic">Inga produktdetaljer tillgängliga</div>
