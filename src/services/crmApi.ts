@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -89,6 +88,7 @@ class CrmApiService {
       try {
         this.credentials = JSON.parse(savedCredentials);
         this.apiUrl = this.credentials.apiUrl;
+        console.log("Restored API credentials from localStorage:", this.apiUrl);
       } catch (error) {
         console.error("Failed to parse saved credentials:", error);
         localStorage.removeItem('crmApiCredentials');
@@ -101,7 +101,11 @@ class CrmApiService {
   setApiCredentials(credentials: ApiCredentials): void {
     this.credentials = credentials;
     this.apiUrl = credentials.apiUrl;
+    
+    // Spara credentials i localStorage
     localStorage.setItem('crmApiCredentials', JSON.stringify(credentials));
+    console.log("Saved API credentials to localStorage:", this.apiUrl);
+    
     toast.success("API-inställningar har sparats!");
   }
 
