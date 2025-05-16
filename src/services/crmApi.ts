@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -105,12 +104,20 @@ interface ApiResponse<T> {
   success?: boolean;
 }
 
+// Interface för användare från api_users_view
+interface ApiUser {
+  userid: string;
+  Fname: string;
+  Lname: string;
+}
+
 class CrmApiService {
   private apiUrl: string = '';
   private credentials: ApiCredentials | null = null;
   private pollingInterval: number | null = null;
   private listeners: ((activities: CrmActivity[]) => void)[] = [];
   private lastFetchTime: number = 0;
+  private userMap: Map<string, string> = new Map(); // Map för att koppla användarID till namn
 
   constructor() {
     // Försöker ladda sparade credentials från localStorage
@@ -245,6 +252,10 @@ class CrmApiService {
       const customers = await this.fetchCustomers();
       console.log(`Fetched ${customers.length} customers for mapping`);
       
+      // Fetch all users from api_users_view to map user IDs to names
+      const users = await this.fetchUsers();
+      console.log(`Fetched ${users.length} users for mapping`);
+      
       // Create a map of customer IDs to names for quick lookups
       const customerMap = new Map<string, string>();
       customers.forEach(customer => {
@@ -252,6 +263,18 @@ class CrmApiService {
           customerMap.set(customer.id, customer.name);
           // Also log each customer mapping for debugging
           console.log(`Customer mapping: ID ${customer.id} => ${customer.name}`);
+        }
+      });
+      
+      // Create a map of user IDs to names for quick lookups
+      this.userMap.clear();
+      users.forEach(user => {
+        const fullName = `${user.Fname || ''} ${user.Lname || ''}`.trim();
+        if (user.userid && fullName) {
+          const userId = user.userid.toLowerCase().replace('@001', '');
+          this.userMap.set(userId, fullName);
+          // Log each user mapping for debugging
+          console.log(`User mapping: ID ${userId} => ${fullName}`);
         }
       });
       
@@ -344,6 +367,46 @@ class CrmApiService {
       return customers;
     } catch (error) {
       console.error("Error fetching customers:", error);
+      return [];
+    }
+  }
+
+  // Hämta alla användare från api_users_view
+  private async fetchUsers(): Promise<ApiUser[]> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+    
+    try {
+      console.log("Fetching users from api_users_view");
+      const response = await fetch(`${this.apiUrl}/api_users_view?viewPage=1`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Users API error (${response.status}):`, errorText);
+        return [];
+      }
+      
+      const data = await response.json();
+      console.log("Users API response:", data);
+      
+      // Hantera olika svarsformat från API
+      let users: ApiUser[] = [];
+      
+      if (Array.isArray(data)) {
+        users = data;
+      } else if (data && data.items) {
+        users = data.items;
+      } else if (data && data.data) {
+        users = data.data;
+      }
+      
+      console.log(`Processed ${users.length} users for mapping`);
+      return users;
+    } catch (error) {
+      console.error("Error fetching users:", error);
       return [];
     }
   }
@@ -459,18 +522,33 @@ class CrmApiService {
     }
   }
 
+  // Hitta användarens namn baserat på createdBy
+  private getUserName(createdBy?: string): string {
+    if (!createdBy) return 'Okänd användare';
+    
+    // Extract the username from the createdBy field (remove @001 or similar suffix)
+    const userId = createdBy.toLowerCase().replace('@001', '');
+    
+    // Check if we have a mapping for this user
+    const userName = this.userMap.get(userId);
+    if (userName) return userName;
+    
+    // Fallbacks if no mapping found
+    return createdBy;
+  }
+
   // Omvandla ApiNote till CrmActivity
   private convertNoteToActivity(note: ApiNote, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting note to activity:", note);
     
-    // Extract userName from multiple possible fields
+    // Extract userName from multiple possible fields with user mapping
     let userName = 'Okänd användare';
-    if (note.user && note.user.name) {
+    if (note.createdBy) {
+      userName = this.getUserName(note.createdBy);
+    } else if (note.user && note.user.name) {
       userName = note.user.name;
     } else if (note.userSignature) {
       userName = note.userSignature;
-    } else if (note.createdBy) {
-      userName = note.createdBy;
     }
     
     // Extract noteContent from either text or note field
@@ -513,7 +591,7 @@ class CrmApiService {
       content: noteContent,
       timestamp: note.created || new Date().toISOString(),
       user: {
-        id: 'unknown',
+        id: note.createdBy || 'unknown',
         name: userName,
       },
       relatedTo: customerName ? {
@@ -531,14 +609,14 @@ class CrmApiService {
   private convertTodoToActivity(todo: ApiTodo, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting todo to activity:", todo);
     
-    // Extract userName from multiple possible fields
+    // Extract userName from multiple possible fields with user mapping
     let userName = 'Okänd användare';
-    if (todo.user && todo.user.name) {
+    if (todo.createdBy) {
+      userName = this.getUserName(todo.createdBy);
+    } else if (todo.user && todo.user.name) {
       userName = todo.user.name;
     } else if (todo.userSignature) {
       userName = todo.userSignature;
-    } else if (todo.createdBy) {
-      userName = todo.createdBy;
     }
     
     // Extract company information
@@ -578,7 +656,7 @@ class CrmApiService {
       content: todo.title ? `${todo.title}: ${todo.description || ''}` : (todo.description || 'Ingen beskrivning'),
       timestamp: todo.triggerDate || new Date().toISOString(),
       user: {
-        id: 'unknown',
+        id: todo.createdBy || 'unknown',
         name: userName,
       },
       relatedTo: customerName ? {
@@ -596,14 +674,14 @@ class CrmApiService {
   private convertOrderToActivity(order: ApiOrder, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting order to activity:", order);
     
-    // Extract userName from multiple possible fields
+    // Extract userName from multiple possible fields with user mapping
     let userName = 'Okänd användare';
-    if (order.user && order.user.name) {
+    if (order.createdBy) {
+      userName = this.getUserName(order.createdBy);
+    } else if (order.user && order.user.name) {
       userName = order.user.name;
     } else if (order.userSignature) {
       userName = order.userSignature;
-    } else if (order.createdBy) {
-      userName = order.createdBy;
     }
     
     // Extract company information
@@ -643,7 +721,7 @@ class CrmApiService {
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
       timestamp: order.created || new Date().toISOString(),
       user: {
-        id: 'unknown',
+        id: order.createdBy || 'unknown',
         name: userName,
       },
       relatedTo: customerName ? {

@@ -45,7 +45,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   
   // Get initials for avatar fallback
   const getInitials = (name: string) => {
-    if (!name) return 'UK';
+    if (!name || name === 'Okänd användare') return 'UK';
     
     return name
       .split(' ')
