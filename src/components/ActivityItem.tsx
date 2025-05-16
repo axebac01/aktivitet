@@ -37,7 +37,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return <FileText size={18} className="text-crm-blue" />;
       case 'message': return <MessageSquare size={18} className="text-crm-lightBlue" />;
-      case 'call': return <Phone size={18} className="text-crm-navy" />;
+      case 'call': return <Phone size={18} className="text-green-600" />; // Changed to green for orders
       case 'task': return <CheckSquare size={18} className="text-crm-orange" />;
       default: return <MessageSquare size={18} className="text-crm-darkGray" />;
     }
@@ -65,7 +65,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return 'bg-gradient-to-br from-white to-blue-50';
       case 'message': return 'bg-gradient-to-br from-white to-green-50';
-      case 'call': return 'bg-gradient-to-br from-white to-purple-50';
+      case 'call': return 'bg-gradient-to-br from-white to-green-50'; // Changed to green for orders
       case 'task': return 'bg-gradient-to-br from-white to-orange-50';
       default: return 'bg-gradient-to-br from-white to-gray-50';
     }
@@ -76,7 +76,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return 'border-crm-blue';
       case 'message': return 'border-crm-lightBlue';
-      case 'call': return 'border-crm-navy';
+      case 'call': return 'border-green-500'; // Changed to green for orders
       case 'task': return 'border-crm-orange';
       default: return 'border-crm-darkGray';
     }
@@ -123,7 +123,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
                   </span>
                   <span className="text-xs bg-white/80 shadow-sm px-2 py-0.5 rounded-full flex items-center gap-1 border border-gray-100">
                     {getActivityIcon(activity.type)}
-                    <span className="capitalize font-medium text-crm-darkGray">{activity.type}</span>
+                    <span className="capitalize font-medium text-crm-darkGray">
+                      {activity.type === 'call' ? 'Order' : activity.type}
+                    </span>
                   </span>
                 </div>
                 <div className="text-xs text-crm-darkGray font-medium">{formattedTime}</div>

@@ -737,7 +737,7 @@ class CrmApiService {
       id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
-      timestamp: order.created || new Date().toISOString(),
+      timestamp: order.created || new Date().toISOString(), // Ensure we're using the order's created date
       user: {
         id: order.createdBy || 'unknown',
         name: userName,
