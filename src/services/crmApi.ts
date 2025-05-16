@@ -250,7 +250,7 @@ class CrmApiService {
       const todoActivities = todos.map(todo => this.convertTodoToActivity(todo, customerMap));
       const orderActivities = orders.map(order => this.convertOrderToActivity(order, customerMap));
       
-      // Kombinera och sortera efter timestamp, nyast först
+      // Kombinera och sortera efter created timestamp (nyast först)
       const allActivities = [...noteActivities, ...todoActivities, ...orderActivities].sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
@@ -439,8 +439,11 @@ class CrmApiService {
     
     // Try to get the customer name from the customer map
     let customerName = 'Okänd kund';
+    let customerId = '';
+    
     if (note.customer && note.customer.id) {
-      const mappedName = customerMap.get(note.customer.id.toString());
+      customerId = note.customer.id.toString();
+      const mappedName = customerMap.get(customerId);
       if (mappedName) {
         customerName = mappedName;
       } else if (note.customer.name) {
@@ -457,9 +460,9 @@ class CrmApiService {
         id: user.id || 'unknown',
         name: user.name || 'Okänd användare',
       },
-      relatedTo: note.customer ? {
+      relatedTo: customerId ? {
         type: 'customer',
-        id: note.customer.id,
+        id: customerId,
         name: customerName
       } : undefined
     };
@@ -475,8 +478,11 @@ class CrmApiService {
     
     // Try to get the customer name from the customer map
     let customerName = 'Okänd kund';
+    let customerId = '';
+    
     if (todo.customer && todo.customer.id) {
-      const mappedName = customerMap.get(todo.customer.id.toString());
+      customerId = todo.customer.id.toString();
+      const mappedName = customerMap.get(customerId);
       if (mappedName) {
         customerName = mappedName;
       } else if (todo.customer.name) {
@@ -493,9 +499,9 @@ class CrmApiService {
         id: user.id || 'unknown',
         name: user.name || 'Okänd användare',
       },
-      relatedTo: todo.customer ? {
+      relatedTo: customerId ? {
         type: 'customer',
-        id: todo.customer.id,
+        id: customerId,
         name: customerName
       } : undefined
     };
@@ -511,8 +517,11 @@ class CrmApiService {
     
     // Try to get the customer name from the customer map
     let customerName = 'Okänd kund';
+    let customerId = '';
+    
     if (order.customer && order.customer.id) {
-      const mappedName = customerMap.get(order.customer.id.toString());
+      customerId = order.customer.id.toString();
+      const mappedName = customerMap.get(customerId);
       if (mappedName) {
         customerName = mappedName;
       } else if (order.customer.name) {
@@ -529,9 +538,9 @@ class CrmApiService {
         id: user.id || 'unknown',
         name: user.name || 'Okänd användare',
       },
-      relatedTo: order.customer ? {
+      relatedTo: customerId ? {
         type: 'customer',
-        id: order.customer.id,
+        id: customerId,
         name: customerName
       } : undefined
     };

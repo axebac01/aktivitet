@@ -122,21 +122,18 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
                 <div className="text-xs text-crm-darkGray font-medium">{formattedTime}</div>
               </div>
               
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                {activity.content}
-              </div>
-              
               {activity.relatedTo && (
-                <div className="mt-2 text-xs flex items-center gap-1 text-crm-darkGray">
+                <div className="mb-2 text-xs flex items-center gap-1 bg-white/80 px-2 py-1 rounded-full shadow-sm border border-gray-100 w-fit">
                   {getRelatedIcon(activity.relatedTo.type)}
-                  <span>
-                    Relaterad till:{' '}
-                    <span className="font-medium text-crm-blue">
-                      {activity.relatedTo.name}
-                    </span>
+                  <span className="font-medium text-crm-blue">
+                    {activity.relatedTo.name}
                   </span>
                 </div>
               )}
+              
+              <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                {activity.content}
+              </div>
             </div>
           </div>
         </CardContent>
