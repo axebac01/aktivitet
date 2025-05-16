@@ -112,7 +112,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     if (activity.type !== 'call' || !activity.orderDetails) return null;
     
     // Check if we actually have order items to display
-    const hasItems = activity.orderDetails.items && activity.orderDetails.items.length > 0;
+    const hasItems = activity.orderDetails.items && Array.isArray(activity.orderDetails.items) && activity.orderDetails.items.length > 0;
     
     // Debug log to check order details
     console.log('Order details:', activity.orderDetails);
@@ -141,20 +141,18 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
         
         {hasItems ? (
           <div className="space-y-2">
-            {(activity.orderDetails.items as OrderItem[]).map((item, index) => {
-              return (
-                <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
-                  <span className="font-medium">
-                    {item.productName || item.name || (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt")}
+            {(activity.orderDetails.items as OrderItem[]).map((item, index) => (
+              <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
+                <span className="font-medium">
+                  {item.productName || item.name || (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt")}
+                </span>
+                {item.quantity && item.price && (
+                  <span className="text-green-700 font-medium">
+                    {item.quantity} × {item.price} SEK
                   </span>
-                  {item.quantity && item.price && (
-                    <span className="text-green-700 font-medium">
-                      {item.quantity} × {item.price} SEK
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-gray-500 italic">Inga produktdetaljer tillgängliga</div>
