@@ -4,7 +4,7 @@ import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Clock, Eye } from 'lucide-react';
+import { RefreshCw, Clock, Eye, MessageSquare } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 
 export const ActivityStream: React.FC = () => {
