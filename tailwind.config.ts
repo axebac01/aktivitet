@@ -64,8 +64,10 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				crm: {
-					blue: '#2563eb',
-					lightBlue: '#60a5fa',
+					blue: '#0F4C81', // Dark blue from CRMdata logo
+					lightBlue: '#3A75C4',
+					navy: '#0A3A63',
+					orange: '#F97316', // Orange for highlighted buttons
 					gray: '#f3f4f6',
 					darkGray: '#4b5563',
 				},

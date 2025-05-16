@@ -95,6 +95,13 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
+          <div className="flex items-center gap-2 justify-center mb-2">
+            <img 
+              src="/lovable-uploads/9a9a0b86-ed92-4cd5-b26f-58b6d9dcb5a1.png" 
+              alt="CRMdata Logo" 
+              className="h-8"
+            />
+          </div>
           <DialogTitle>CRM API-inställningar</DialogTitle>
           <DialogDescription>
             Ange dina CRM API-inloggningsuppgifter för att ansluta till ditt system.
@@ -152,7 +159,12 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit" onClick={handleSave} disabled={isValidating}>
+          <Button 
+            type="submit" 
+            onClick={handleSave} 
+            disabled={isValidating}
+            className="bg-crm-orange hover:bg-crm-orange/90"
+          >
             {isValidating ? "Validerar..." : "Spara inställningar"}
           </Button>
         </DialogFooter>

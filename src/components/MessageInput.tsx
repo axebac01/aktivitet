@@ -71,6 +71,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <Button 
           onClick={handleSend} 
           disabled={disabled || sending || !message.trim()}
+          className="bg-crm-orange hover:bg-crm-orange/90 text-white"
         >
           <Send size={16} />
           <span className="sr-only">Skicka</span>

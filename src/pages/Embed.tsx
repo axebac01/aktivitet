@@ -18,12 +18,20 @@ const Embed = () => {
 
   return (
     <div className="h-full flex flex-col bg-white border rounded shadow-sm">
-      <div className="p-2 flex justify-between items-center border-b">
-        <h2 className="text-sm font-medium">Aktivitetsflöde</h2>
+      <div className="p-2 flex justify-between items-center border-b bg-crm-blue text-white">
+        <div className="flex items-center gap-2">
+          <img 
+            src="/lovable-uploads/9a9a0b86-ed92-4cd5-b26f-58b6d9dcb5a1.png" 
+            alt="CRMdata Logo" 
+            className="h-6"
+          />
+          <h2 className="text-sm font-medium">Aktivitetsflöde</h2>
+        </div>
         <Button 
           variant="ghost" 
           size="sm"
           onClick={() => setIsSettingsOpen(true)}
+          className="text-white hover:bg-crm-navy"
         >
           <Settings className="h-4 w-4" />
         </Button>
