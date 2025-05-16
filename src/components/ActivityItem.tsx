@@ -117,11 +117,12 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     // Debug log to check order details
     console.log('Order details:', activity.orderDetails);
     
-    // Log article IDs to help with debugging
+    // Log article IDs and product names to help with debugging
     if (hasItems) {
       // Cast items to OrderItem[] to fix TypeScript errors
       const items = activity.orderDetails.items as OrderItem[];
-      console.log('Order items article IDs:', items.map(item => item.articleId));
+      console.log('Order items:', items);
+      console.log('Product names:', items.map(item => item.productName));
     }
     
     return (
@@ -141,15 +142,11 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
         {hasItems ? (
           <div className="space-y-2">
             {(activity.orderDetails.items as OrderItem[]).map((item, index) => {
-              // Try to get product name from different sources
-              const productName = 
-                item.productName || // Try from productName field
-                item.name ||       // Try from name field directly
-                (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt"); // Use article ID as fallback
-              
               return (
                 <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
-                  <span className="font-medium">{productName}</span>
+                  <span className="font-medium">
+                    {item.productName || item.name || (item.articleId ? `Produkt #${item.articleId}` : "Okänd produkt")}
+                  </span>
                   {item.quantity && item.price && (
                     <span className="text-green-700 font-medium">
                       {item.quantity} × {item.price} SEK
