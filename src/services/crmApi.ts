@@ -401,8 +401,8 @@ class CrmApiService {
     }
   }
 
-  // Hämta alla användare från api_users_view
-  private async fetchUsers(): Promise<ApiUser[]> {
+  // Fetch all users from api_users_view
+  async fetchUsers(): Promise<ApiUser[]> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
     }
