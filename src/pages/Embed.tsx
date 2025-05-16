@@ -21,11 +21,10 @@ const Embed = () => {
       <div className="p-2 flex justify-between items-center border-b bg-gradient-blue text-white">
         <div className="flex items-center gap-2">
           <img 
-            src="/lovable-uploads/06fb83b7-a025-412b-b6f6-1c5ab981a5f4.png" 
+            src="/lovable-uploads/7385ba2a-9cf3-4fb7-a9b6-6884c2a9e544.png" 
             alt="CRMdata Logo" 
-            className="h-8" // Increased logo size
+            className="h-10" 
           />
-          <h2 className="text-sm font-medium">Aktivitetsflöde</h2>
         </div>
         <Button 
           variant="ghost" 

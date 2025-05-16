@@ -35,9 +35,9 @@ const Index = () => {
         <div className="container py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <img 
-              src="/lovable-uploads/06fb83b7-a025-412b-b6f6-1c5ab981a5f4.png" 
+              src="/lovable-uploads/7385ba2a-9cf3-4fb7-a9b6-6884c2a9e544.png" 
               alt="CRMdata Logo" 
-              className="h-12" // Increased logo size
+              className="h-14" 
             />
           </div>
           <div className="flex items-center space-x-2">
