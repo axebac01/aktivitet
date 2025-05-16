@@ -131,22 +131,26 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       console.log('First item:', orderItems[0]);
     }
     
-    // Calculate total value in a type-safe way
-    let totalValue: string = "0";
+    // Calculate total value in a completely different way to avoid TypeScript errors
+    let totalValue = "0";
     
-    // First check if total value is already provided
+    // First check if total value is already provided in the activity
     if (activity.orderDetails.totalValue) {
       totalValue = activity.orderDetails.totalValue;
     } 
-    // Otherwise calculate it from items if available
-    else if (orderItems && orderItems.length > 0) {
-      const calculatedTotal = orderItems.reduce((sum: number, item: OrderItem) => {
-        // Extract totalIncludingVat as a number if it exists
-        const itemValue = item.totalIncludingVat ? parseFloat(item.totalIncludingVat) : 0;
-        return sum + itemValue;
-      }, 0);
-      
-      totalValue = calculatedTotal.toFixed(2);
+    // Otherwise calculate it from items manually without using reduce
+    else if (hasItems) {
+      let sum = 0;
+      for (let i = 0; i < orderItems.length; i++) {
+        const item = orderItems[i];
+        if (item && item.totalIncludingVat) {
+          const itemValue = parseFloat(item.totalIncludingVat);
+          if (!isNaN(itemValue)) {
+            sum += itemValue;
+          }
+        }
+      }
+      totalValue = sum.toFixed(2);
     }
     
     return (
