@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { crmApi, ApiCredentials } from '@/services/crmApi';
 import { toast } from '@/components/ui/sonner';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 interface ApiSetupModalProps {
   open: boolean;
@@ -70,6 +70,17 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
     setIsValidating(true);
 
     try {
+      // Om vi inte har testat ännu, gör det innan vi sparar
+      if (!testResult) {
+        const result = await crmApi.testApiConnection();
+        if (!result.success) {
+          setTestResult(result);
+          toast.error("Anslutningen fungerade inte. Kontrollera dina uppgifter.");
+          setIsValidating(false);
+          return;
+        }
+      }
+
       crmApi.setApiCredentials(credentials);
       onOpenChange(false);
       toast.success("API-anslutningen är konfigurerad!");
@@ -90,7 +101,7 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
 
     try {
       // Spara temporärt inställningarna för testet
-      crmApi.setApiCredentials(credentials);
+      const tempCredentials = {...credentials};
       
       // Testa anslutningen
       const result = await crmApi.testApiConnection();
@@ -184,8 +195,14 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
               onChange={(e) => handleInputChange('schema', e.target.value)}
               placeholder="example@001"
             />
-            <div className="col-span-4 text-xs text-gray-500">
+          </div>
+          <div className="col-span-4 text-xs bg-blue-50 text-blue-800 p-3 rounded-md border border-blue-100 flex items-start gap-2">
+            <Info size={16} className="text-blue-500 mt-0.5" />
+            <div>
+              <p className="font-medium">API Authentication Information</p>
               <p>Schema är ditt licensnamn, t.ex. "example@001"</p>
+              <p>Användarnamn har formatet "api@001_api"</p>
+              <p>API:et använder Basic Auth och kräver att alla fält är ifyllda korrekt.</p>
             </div>
           </div>
           
@@ -217,7 +234,7 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
           <Button 
             type="submit" 
             onClick={handleSave} 
-            disabled={isValidating}
+            disabled={isValidating || isTesting}
             className="bg-crm-orange hover:bg-crm-orange/90"
           >
             {isValidating ? "Validerar..." : "Spara inställningar"}

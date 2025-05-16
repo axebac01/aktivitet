@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -74,6 +75,20 @@ interface ApiOrder {
   };
 }
 
+// Interface för API svar med pagination
+interface ApiResponse<T> {
+  data?: T[];
+  items?: T[];
+  pagination?: {
+    next?: string;
+    previous?: string;
+    currentPage?: number;
+    totalPages?: number;
+  };
+  message?: string;
+  success?: boolean;
+}
+
 class CrmApiService {
   private apiUrl: string = '';
   private credentials: ApiCredentials | null = null;
@@ -133,8 +148,8 @@ class CrmApiService {
     });
 
     try {
-      // Försök hämta bara en anteckning för att testa anslutningen
-      const response = await fetch(`${this.apiUrl}/notes?limit=1`, {
+      // Testar anslutningen genom att försöka hämta en anteckning med limit=1
+      const response = await fetch(`${this.apiUrl}/notes?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
       
@@ -145,9 +160,18 @@ class CrmApiService {
         const errorText = await response.text();
         console.error("API Error response:", errorText);
         
+        let errorMessage = `API svarade med status ${response.status}`;
+        if (response.status === 401) {
+          errorMessage = "Obehörig åtkomst. Kontrollera användarnamn och lösenord.";
+        } else if (response.status === 400) {
+          errorMessage = "Felaktig förfrågan. Kontrollera schema och andra parametrar.";
+        } else if (response.status === 404) {
+          errorMessage = "API endpoint hittades inte. Kontrollera API URL.";
+        }
+        
         return { 
           success: false, 
-          message: `API svarade med status ${response.status}`, 
+          message: errorMessage, 
           details: {
             status: response.status,
             text: errorText
@@ -158,17 +182,24 @@ class CrmApiService {
       const data = await response.json();
       console.log("API test data:", data);
       
-      // Kontrollera om vi fick någon data tillbaka
-      if (data && data.items) {
+      // Kontrollera svarsformatet baserat på API-dokumentationen
+      if (Array.isArray(data)) {
         return { 
           success: true, 
-          message: `Anslutning lyckades! Hittade ${data.items.length} anteckningar.`,
+          message: `Anslutning lyckades! Hittade ${data.length} anteckningar.`,
+          details: data
+        };
+      } else if (data && (data.items || data.data)) {
+        const items = data.items || data.data || [];
+        return { 
+          success: true, 
+          message: `Anslutning lyckades! Hittade ${items.length} anteckningar.`,
           details: data
         };
       } else {
         return { 
           success: true,
-          message: "Anslutningen fungerar men inga anteckningar hittades.",
+          message: "Anslutningen fungerar men svarsformatet var oväntat.",
           details: data
         };
       }
@@ -230,7 +261,7 @@ class CrmApiService {
     
     try {
       console.log("Fetching notes from API");
-      const response = await fetch(`${this.apiUrl}/notes`, {
+      const response = await fetch(`${this.apiUrl}/notes?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
       
@@ -242,7 +273,17 @@ class CrmApiService {
       
       const data = await response.json();
       console.log("Notes API response:", data);
-      return data.items || [];
+      
+      // Hanterar olika svarsformat baserat på API-dokumentationen
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && data.items) {
+        return data.items;
+      } else if (data && data.data) {
+        return data.data;
+      }
+      
+      return [];
     } catch (error) {
       console.error("Error fetching notes:", error);
       throw error;
@@ -257,16 +298,28 @@ class CrmApiService {
     
     try {
       console.log("Fetching todos from API");
-      const response = await fetch(`${this.apiUrl}/todos`, {
+      const response = await fetch(`${this.apiUrl}/todos?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Todos API error (${response.status}):`, errorText);
         throw new Error(`API request failed with status ${response.status}`);
       }
       
       const data = await response.json();
-      return data.items || [];
+      
+      // Hanterar olika svarsformat baserat på API-dokumentationen
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && data.items) {
+        return data.items;
+      } else if (data && data.data) {
+        return data.data;
+      }
+      
+      return [];
     } catch (error) {
       console.error("Error fetching todos:", error);
       throw error;
@@ -281,16 +334,28 @@ class CrmApiService {
     
     try {
       console.log("Fetching orders from API");
-      const response = await fetch(`${this.apiUrl}/orders`, {
+      const response = await fetch(`${this.apiUrl}/orders?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Orders API error (${response.status}):`, errorText);
         throw new Error(`API request failed with status ${response.status}`);
       }
       
       const data = await response.json();
-      return data.items || [];
+      
+      // Hanterar olika svarsformat baserat på API-dokumentationen
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && data.items) {
+        return data.items;
+      } else if (data && data.data) {
+        return data.data;
+      }
+      
+      return [];
     } catch (error) {
       console.error("Error fetching orders:", error);
       // Return empty array instead of throwing to avoid breaking all activities
@@ -356,7 +421,7 @@ class CrmApiService {
     };
   }
 
-  // Skapa auth headers för API-anrop - UPPDATERAT enligt API docs
+  // Skapa auth headers för API-anrop enligt API-dokumentationen
   private getAuthHeaders(): HeadersInit {
     if (!this.credentials) {
       throw new Error("API credentials not set");
@@ -557,3 +622,4 @@ class CrmApiService {
 
 // Singleton instance
 export const crmApi = new CrmApiService();
+
