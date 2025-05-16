@@ -90,6 +90,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     }
   };
 
+  // For debugging - log the actual activity data
+  console.log("Rendering activity:", activity);
+
   return (
     <div
       className={`mb-4 transition-all ${

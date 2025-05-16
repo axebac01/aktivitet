@@ -290,7 +290,7 @@ class CrmApiService {
       // For debugging, log a sample of each data type
       if (notes.length > 0) console.log("Sample note:", notes[0]);
       if (todos.length > 0) console.log("Sample todo:", todos[0]);
-      if (orders.length > 0) console.log("Sample order:", orders[0]);
+      if (orders.length >0) console.log("Sample order:", orders[0]);
       
       // Konvertera och kombinera notes, todos och orders till activities
       const noteActivities = notes.map(note => this.convertNoteToActivity(note, customerMap));
@@ -531,6 +531,7 @@ class CrmApiService {
     
     // Check if we have a mapping for this user
     const userName = this.userMap.get(userId);
+    console.log(`Looking up user ${userId}, found: ${userName || 'not found'}`);
     if (userName) return userName;
     
     // Fallbacks if no mapping found
@@ -545,6 +546,7 @@ class CrmApiService {
     let userName = 'Okänd användare';
     if (note.createdBy) {
       userName = this.getUserName(note.createdBy);
+      console.log(`For note ${note.id}: Found userName ${userName} from createdBy ${note.createdBy}`);
     } else if (note.user && note.user.name) {
       userName = note.user.name;
     } else if (note.userSignature) {
@@ -741,7 +743,7 @@ class CrmApiService {
       throw new Error("API credentials not set");
     }
 
-    // Skapa Base64-kodad auth-sträng för Basic Auth
+    // Skapa Base64-kodad auth-str��ng för Basic Auth
     const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
     
     const headers: HeadersInit = {

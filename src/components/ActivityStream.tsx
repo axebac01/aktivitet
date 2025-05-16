@@ -24,10 +24,10 @@ export const ActivityStream: React.FC = () => {
       console.log("Initial load fetched", data.length, "activities");
       console.log("Activities with company data:", data.filter(a => a.relatedTo).length);
       
-      // Log a few sample activities to verify data
-      if (data.length > 0) {
-        console.log("Sample activities:", data.slice(0, 3));
-      }
+      // Log user information for debugging
+      data.forEach(activity => {
+        console.log(`Activity ${activity.id}: User ${activity.user.name}`);
+      });
       
       setActivities(data);
       previousActivitiesRef.current = data;
