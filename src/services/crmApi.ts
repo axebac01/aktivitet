@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -28,8 +29,14 @@ export interface ApiCredentials {
 // Interface för en anteckning från API
 interface ApiNote {
   id: string;
-  text: string;
+  text?: string;
+  note?: string;
   created: string;
+  createdBy?: string;
+  userSignature?: string;
+  email?: string;
+  companyName?: string;
+  customerId?: string;
   user?: {
     id?: string;
     name?: string;
@@ -47,6 +54,11 @@ interface ApiTodo {
   title: string;
   description: string;
   triggerDate: string;
+  createdBy?: string;
+  userSignature?: string;
+  email?: string;
+  companyName?: string;
+  customerId?: string;
   user?: {
     id?: string;
     name?: string;
@@ -64,6 +76,11 @@ interface ApiOrder {
   orderNumber: string;
   status: string;
   created: string;
+  createdBy?: string;
+  userSignature?: string;
+  email?: string;
+  companyName?: string;
+  customerId?: string;
   customer?: {
     id: string;
     name: string;
@@ -446,41 +463,62 @@ class CrmApiService {
   private convertNoteToActivity(note: ApiNote, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting note to activity:", note);
     
-    // Säkerställ att user finns, annars skapa en default
-    const user = note.user || { 
-      id: 'unknown',
-      name: 'Okänd användare'
-    };
+    // Extract userName from multiple possible fields
+    let userName = 'Okänd användare';
+    if (note.user && note.user.name) {
+      userName = note.user.name;
+    } else if (note.userSignature) {
+      userName = note.userSignature;
+    } else if (note.createdBy) {
+      userName = note.createdBy;
+    }
     
-    // Try to get the customer name from the customer map
-    let customerName = 'Okänd kund';
+    // Extract noteContent from either text or note field
+    const noteContent = note.text || note.note || 'Ingen text';
+    
+    // Extract company information
+    let customerName = '';
     let customerId = '';
     
-    if (note.customer && note.customer.id) {
-      customerId = note.customer.id.toString();
-      console.log(`Looking up customer name for ID: ${customerId}`);
-      const mappedName = customerMap.get(customerId);
-      console.log(`Found mapped name: ${mappedName || 'none'}`);
+    if (note.companyName) {
+      customerName = note.companyName;
+    }
+    
+    if (note.customerId) {
+      customerId = note.customerId.toString();
       
-      if (mappedName) {
-        customerName = mappedName;
-      } else if (note.customer.name) {
+      // If we have customerId but no name, try to lookup from customer map
+      if (!customerName) {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
+      }
+    } else if (note.customer && note.customer.id) {
+      customerId = note.customer.id.toString();
+      
+      if (!customerName && note.customer.name) {
         customerName = note.customer.name;
+      } else {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
       }
     }
     
     const activity: CrmActivity = {
       id: note.id || `note-${Date.now()}-${Math.random()}`,
       type: 'note',
-      content: note.text || 'Ingen text',
+      content: noteContent,
       timestamp: note.created || new Date().toISOString(),
       user: {
-        id: user.id || 'unknown',
-        name: user.name || 'Okänd användare',
+        id: 'unknown',
+        name: userName,
       },
-      relatedTo: customerId ? {
+      relatedTo: customerName ? {
         type: 'customer',
-        id: customerId,
+        id: customerId || 'unknown',
         name: customerName
       } : undefined
     };
@@ -493,26 +531,44 @@ class CrmApiService {
   private convertTodoToActivity(todo: ApiTodo, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting todo to activity:", todo);
     
-    // Säkerställ att user finns, annars skapa en default
-    const user = todo.user || { 
-      id: 'unknown',
-      name: 'Okänd användare'
-    };
+    // Extract userName from multiple possible fields
+    let userName = 'Okänd användare';
+    if (todo.user && todo.user.name) {
+      userName = todo.user.name;
+    } else if (todo.userSignature) {
+      userName = todo.userSignature;
+    } else if (todo.createdBy) {
+      userName = todo.createdBy;
+    }
     
-    // Try to get the customer name from the customer map
-    let customerName = 'Okänd kund';
+    // Extract company information
+    let customerName = '';
     let customerId = '';
     
-    if (todo.customer && todo.customer.id) {
-      customerId = todo.customer.id.toString();
-      console.log(`Looking up customer name for ID: ${customerId}`);
-      const mappedName = customerMap.get(customerId);
-      console.log(`Found mapped name: ${mappedName || 'none'}`);
+    if (todo.companyName) {
+      customerName = todo.companyName;
+    }
+    
+    if (todo.customerId) {
+      customerId = todo.customerId.toString();
       
-      if (mappedName) {
-        customerName = mappedName;
-      } else if (todo.customer.name) {
+      // If we have customerId but no name, try to lookup from customer map
+      if (!customerName) {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
+      }
+    } else if (todo.customer && todo.customer.id) {
+      customerId = todo.customer.id.toString();
+      
+      if (!customerName && todo.customer.name) {
         customerName = todo.customer.name;
+      } else {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
       }
     }
     
@@ -522,12 +578,12 @@ class CrmApiService {
       content: todo.title ? `${todo.title}: ${todo.description || ''}` : (todo.description || 'Ingen beskrivning'),
       timestamp: todo.triggerDate || new Date().toISOString(),
       user: {
-        id: user.id || 'unknown',
-        name: user.name || 'Okänd användare',
+        id: 'unknown',
+        name: userName,
       },
-      relatedTo: customerId ? {
+      relatedTo: customerName ? {
         type: 'customer',
-        id: customerId,
+        id: customerId || 'unknown',
         name: customerName
       } : undefined
     };
@@ -540,26 +596,44 @@ class CrmApiService {
   private convertOrderToActivity(order: ApiOrder, customerMap: Map<string, string>): CrmActivity {
     console.log("Converting order to activity:", order);
     
-    // Säkerställ att user finns, annars skapa en default
-    const user = order.user || { 
-      id: 'unknown',
-      name: 'Okänd användare'
-    };
+    // Extract userName from multiple possible fields
+    let userName = 'Okänd användare';
+    if (order.user && order.user.name) {
+      userName = order.user.name;
+    } else if (order.userSignature) {
+      userName = order.userSignature;
+    } else if (order.createdBy) {
+      userName = order.createdBy;
+    }
     
-    // Try to get the customer name from the customer map
-    let customerName = 'Okänd kund';
+    // Extract company information
+    let customerName = '';
     let customerId = '';
     
-    if (order.customer && order.customer.id) {
-      customerId = order.customer.id.toString();
-      console.log(`Looking up customer name for ID: ${customerId}`);
-      const mappedName = customerMap.get(customerId);
-      console.log(`Found mapped name: ${mappedName || 'none'}`);
+    if (order.companyName) {
+      customerName = order.companyName;
+    }
+    
+    if (order.customerId) {
+      customerId = order.customerId.toString();
       
-      if (mappedName) {
-        customerName = mappedName;
-      } else if (order.customer.name) {
+      // If we have customerId but no name, try to lookup from customer map
+      if (!customerName) {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
+      }
+    } else if (order.customer && order.customer.id) {
+      customerId = order.customer.id.toString();
+      
+      if (!customerName && order.customer.name) {
         customerName = order.customer.name;
+      } else {
+        const mappedName = customerMap.get(customerId);
+        if (mappedName) {
+          customerName = mappedName;
+        }
       }
     }
     
@@ -569,12 +643,12 @@ class CrmApiService {
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
       timestamp: order.created || new Date().toISOString(),
       user: {
-        id: user.id || 'unknown',
-        name: user.name || 'Okänd användare',
+        id: 'unknown',
+        name: userName,
       },
-      relatedTo: customerId ? {
+      relatedTo: customerName ? {
         type: 'customer',
-        id: customerId,
+        id: customerId || 'unknown',
         name: customerName
       } : undefined
     };
