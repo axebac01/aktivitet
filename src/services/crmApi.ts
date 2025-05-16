@@ -86,7 +86,7 @@ interface ApiOrder {
   };
   user?: {
     id?: string;
-    name?: string;
+    name: string;
   };
 }
 
@@ -537,7 +537,7 @@ class CrmApiService {
     if (userName) return userName;
     
     // Fallbacks if no mapping found
-    return createdBy;
+    return 'Okänd användare'; // Changed to return a standard string instead of the userID
   }
 
   // Omvandla ApiNote till CrmActivity
@@ -745,7 +745,7 @@ class CrmApiService {
       throw new Error("API credentials not set");
     }
 
-    // Skapa Base64-kodad auth-str��ng för Basic Auth
+    // Skapa Base64-kodad auth-sträng för Basic Auth
     const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
     
     const headers: HeadersInit = {
