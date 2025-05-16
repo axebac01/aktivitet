@@ -90,9 +90,6 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     }
   };
 
-  // For debugging - log the actual activity data
-  console.log("Rendering activity:", activity);
-
   return (
     <div
       className={`mb-4 transition-all ${
@@ -117,7 +114,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-crm-navy">
-                    {activity.user.name !== 'Okänd användare' ? activity.user.name : 'Okänd användare'}
+                    {activity.user.name || 'Okänd användare'}
                   </span>
                   <span className="text-xs bg-white/80 shadow-sm px-2 py-0.5 rounded-full flex items-center gap-1 border border-gray-100">
                     {getActivityIcon(activity.type)}

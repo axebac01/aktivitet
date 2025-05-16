@@ -107,8 +107,10 @@ interface ApiResponse<T> {
 // Interface för användare från api_users_view
 interface ApiUser {
   userid: string;
-  Fname: string;
-  Lname: string;
+  firstname?: string;  // Updated field names to match API response
+  lastname?: string;   // Updated field names to match API response
+  Fname?: string;      // Keep original field names as fallback
+  Lname?: string;      // Keep original field names as fallback
 }
 
 class CrmApiService {
@@ -269,13 +271,19 @@ class CrmApiService {
       // Create a map of user IDs to names for quick lookups
       this.userMap.clear();
       users.forEach(user => {
-        const fullName = `${user.Fname || ''} ${user.Lname || ''}`.trim();
+        // Use firstname/lastname OR Fname/Lname fields depending on what's available
+        const firstName = user.firstname || user.Fname || '';
+        const lastName = user.lastname || user.Lname || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        
         if (user.userid && fullName) {
           // Important: Clean and normalize the user ID by removing the domain suffix
           const userId = user.userid.toLowerCase().replace(/@001$/, '');
           this.userMap.set(userId, fullName);
           // Log each user mapping for debugging
-          console.log(`User mapping: ID ${userId} => ${fullName}`);
+          console.log(`User mapping: ID ${userId} => ${fullName} (from fields: ${firstName}/${lastName})`);
+        } else {
+          console.log(`Incomplete user data:`, user);
         }
       });
       
@@ -402,6 +410,12 @@ class CrmApiService {
         users = data.items;
       } else if (data && data.data) {
         users = data.data;
+      }
+      
+      // Log actual field names from the first user to help debug
+      if (users.length > 0) {
+        console.log("Sample user object fields:", Object.keys(users[0]));
+        console.log("Sample user object:", users[0]);
       }
       
       console.log(`Processed ${users.length} users for mapping`);
@@ -537,7 +551,7 @@ class CrmApiService {
     if (userName) return userName;
     
     // Fallbacks if no mapping found
-    return 'Okänd användare'; // Changed to return a standard string instead of the userID
+    return 'Okänd användare'; 
   }
 
   // Omvandla ApiNote till CrmActivity
