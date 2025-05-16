@@ -59,11 +59,28 @@ interface ApiTodo {
   };
 }
 
+// Interface för en order från API
+interface ApiOrder {
+  id: string;
+  orderNumber: string;
+  status: string;
+  created: string;
+  customer: {
+    id: string;
+    name: string;
+  };
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
 class CrmApiService {
   private apiUrl: string = '';
   private credentials: ApiCredentials | null = null;
   private pollingInterval: number | null = null;
   private listeners: ((activities: CrmActivity[]) => void)[] = [];
+  private lastFetchTime: number = 0;
 
   constructor() {
     // Försöker ladda sparade credentials från localStorage
@@ -77,6 +94,8 @@ class CrmApiService {
         localStorage.removeItem('crmApiCredentials');
       }
     }
+    
+    this.lastFetchTime = Date.now();
   }
 
   setApiCredentials(credentials: ApiCredentials): void {
@@ -95,24 +114,37 @@ class CrmApiService {
   }
 
   async fetchActivities(): Promise<CrmActivity[]> {
+    console.log("Fetching activities at", new Date().toISOString());
+    this.lastFetchTime = Date.now();
+    
     if (!this.credentials) {
       console.log("Inga API-inloggningsuppgifter är inställda");
       return this.getMockActivities(); // Returnera mockdata när ingen API-URL är inställd
     }
 
     try {
-      const notes = await this.fetchNotes();
-      const todos = await this.fetchTodos();
+      console.log("Fetching from API:", this.apiUrl);
       
-      // Konvertera och kombinera notes och todos till activities
+      // Fetch all types of activities
+      const [notes, todos, orders] = await Promise.all([
+        this.fetchNotes(),
+        this.fetchTodos(),
+        this.fetchOrders()
+      ]);
+      
+      console.log(`Fetched ${notes.length} notes, ${todos.length} todos, ${orders.length} orders`);
+      
+      // Konvertera och kombinera notes, todos och orders till activities
       const noteActivities = notes.map(note => this.convertNoteToActivity(note));
       const todoActivities = todos.map(todo => this.convertTodoToActivity(todo));
+      const orderActivities = orders.map(order => this.convertOrderToActivity(order));
       
       // Kombinera och sortera efter timestamp, nyast först
-      const allActivities = [...noteActivities, ...todoActivities].sort(
+      const allActivities = [...noteActivities, ...todoActivities, ...orderActivities].sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       
+      console.log(`Total activities: ${allActivities.length}`);
       return allActivities;
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -128,6 +160,7 @@ class CrmApiService {
     }
     
     try {
+      console.log("Fetching notes from API");
       const response = await fetch(`${this.apiUrl}/notes`, {
         headers: this.getAuthHeaders(),
       });
@@ -151,6 +184,7 @@ class CrmApiService {
     }
     
     try {
+      console.log("Fetching todos from API");
       const response = await fetch(`${this.apiUrl}/todos`, {
         headers: this.getAuthHeaders(),
       });
@@ -164,6 +198,32 @@ class CrmApiService {
     } catch (error) {
       console.error("Error fetching todos:", error);
       throw error;
+    }
+  }
+  
+  // Hämta alla orders från API
+  private async fetchOrders(): Promise<ApiOrder[]> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+    
+    try {
+      console.log("Fetching orders from API");
+      const response = await fetch(`${this.apiUrl}/orders`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.items || [];
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      // Return empty array instead of throwing to avoid breaking all activities
+      console.warn("Using empty orders array due to error");
+      return [];
     }
   }
 
@@ -202,6 +262,25 @@ class CrmApiService {
         id: todo.customer.id,
         name: todo.customer.name
       } : undefined
+    };
+  }
+  
+  // Omvandla ApiOrder till CrmActivity
+  private convertOrderToActivity(order: ApiOrder): CrmActivity {
+    return {
+      id: `order-${order.id}`, // Unique ID to avoid conflicts
+      type: 'call', // Using 'call' type since we don't have an 'order' type
+      content: `Order ${order.orderNumber} skapad med status: ${order.status}`,
+      timestamp: order.created,
+      user: {
+        id: order.user.id,
+        name: order.user.name,
+      },
+      relatedTo: {
+        type: 'customer',
+        id: order.customer.id,
+        name: order.customer.name
+      }
     };
   }
 
@@ -300,7 +379,26 @@ class CrmApiService {
 
   // Mockdata för utveckling och testning
   private getMockActivities(): CrmActivity[] {
+    // Add a new activity that will appear as "new" in the app
+    const newMockActivity: CrmActivity = {
+      id: `mock-${Date.now()}`,  // Ensures a unique ID each time
+      type: 'note',
+      content: 'Ny testanteckning skapad ' + new Date().toLocaleTimeString('sv-SE'),
+      timestamp: new Date().toISOString(),
+      user: {
+        id: '101',
+        name: 'Maria Andersson',
+        avatar: 'https://i.pravatar.cc/150?img=32'
+      },
+      relatedTo: {
+        type: 'customer',
+        id: '1001',
+        name: 'Acme AB'
+      }
+    };
+    
     return [
+      newMockActivity, // Add the new mock activity at the top
       {
         id: '1',
         type: 'note',

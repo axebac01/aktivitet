@@ -5,7 +5,7 @@ import { ActivityItem } from '@/components/ActivityItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Clock } from 'lucide-react';
-import { toast } from '@/components/ui/sonner'; // Add this import for toast notifications
+import { toast } from '@/components/ui/sonner'; // Corrected import for toast
 
 export const ActivityStream: React.FC = () => {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -32,15 +32,26 @@ export const ActivityStream: React.FC = () => {
     }
   };
 
+  // Identify new activities by comparing current and previous data
+  const findNewActivities = (currentActivities: CrmActivity[], previousActivities: CrmActivity[]) => {
+    // Create a Set of IDs from previous activities for faster lookup
+    const prevIds = new Set(previousActivities.map(a => a.id));
+    
+    // Filter current activities to find ones that don't exist in previous data
+    return currentActivities.filter(activity => !prevIds.has(activity.id));
+  };
+
   // Manual refresh function
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       const data = await crmApi.fetchActivities();
       
-      // Find new activities
-      const prevIds = new Set(previousActivitiesRef.current.map(a => a.id));
-      const newItems = data.filter(activity => !prevIds.has(activity.id));
+      // Find new activities using the improved function
+      const newItems = findNewActivities(data, previousActivitiesRef.current);
+      
+      console.log(`Found ${newItems.length} new activities`);
+      console.log('New activities:', newItems);
       
       if (newItems.length > 0) {
         setNewActivities(newItems);
@@ -88,12 +99,14 @@ export const ActivityStream: React.FC = () => {
     
     // Subscribe to activity updates
     const unsubscribe = crmApi.subscribeToActivities((updatedActivities) => {
-      // Find new activities
-      const prevIds = new Set(previousActivitiesRef.current.map(a => a.id));
-      const newItems = updatedActivities.filter(activity => !prevIds.has(activity.id));
+      // Find new activities using the improved function
+      const newItems = findNewActivities(updatedActivities, previousActivitiesRef.current);
       
       if (newItems.length > 0) {
+        console.log(`Subscription found ${newItems.length} new activities`);
         setNewActivities(newItems);
+        toast.success(`${newItems.length} nya aktiviteter hittades`);
+        
         setTimeout(() => {
           setActivities(updatedActivities);
           setNewActivities([]);
