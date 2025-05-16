@@ -41,7 +41,11 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
     if (open) {
       const savedCredentials = crmApi.getCredentials();
       if (savedCredentials) {
-        setCredentials(savedCredentials);
+        // Ensure apiUrl is always set to the default value
+        setCredentials({
+          ...savedCredentials,
+          apiUrl: 'https://api.crmdata.se'
+        });
       }
       setTestResult(null); // Reset test result when modal opens
     }
@@ -155,6 +159,8 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
               value={credentials.apiUrl}
               onChange={(e) => handleInputChange('apiUrl', e.target.value)}
               placeholder="https://api.crmdata.se"
+              disabled
+              className="bg-gray-50"
             />
           </div>
           <div className="grid gap-2">
