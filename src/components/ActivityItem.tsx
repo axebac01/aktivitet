@@ -12,7 +12,8 @@ import {
   CheckSquare, 
   User,
   Building,
-  Receipt
+  Receipt,
+  Package
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -38,7 +39,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return <FileText size={18} className="text-crm-blue" />;
       case 'message': return <MessageSquare size={18} className="text-crm-lightBlue" />;
-      case 'call': return <Receipt size={18} className="text-green-600" />; // Receipt icon for orders
+      case 'call': return <Package size={18} className="text-green-600" />; // Package icon for orders
       case 'task': return <CheckSquare size={18} className="text-crm-orange" />;
       default: return <MessageSquare size={18} className="text-crm-darkGray" />;
     }
@@ -101,23 +102,25 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     if (activity.type !== 'call' || !activity.orderDetails) return null;
     
     return (
-      <div className="mt-2 text-xs bg-white/80 p-2 rounded-md border border-green-100">
+      <div className="mt-3 text-sm bg-white/90 p-3 rounded-md border border-green-200 shadow-sm">
         {activity.orderDetails.totalValue && (
-          <div className="font-medium text-green-700 flex justify-between">
-            <span>Ordervärde (ex moms):</span>
-            <span>{activity.orderDetails.totalValue} SEK</span>
+          <div className="font-bold text-green-700 flex justify-between text-xl mb-3 pb-2 border-b border-green-100">
+            <span>Ordervärde:</span>
+            <span className="bg-green-50 px-3 py-1 rounded-md border border-green-200">
+              {activity.orderDetails.totalValue} SEK
+            </span>
           </div>
         )}
         
         {activity.orderDetails.items && activity.orderDetails.items.length > 0 && (
           <div className="mt-1">
-            <p className="font-medium text-gray-600 mb-1">Produkter:</p>
-            <ul className="space-y-1 pl-2">
+            <p className="font-medium text-gray-700 mb-2">Beställda produkter:</p>
+            <ul className="space-y-2">
               {activity.orderDetails.items.map((item, index) => (
-                <li key={index} className="flex justify-between">
-                  <span>{item.name}</span>
+                <li key={index} className="flex justify-between items-center bg-green-50/50 p-2 rounded-md border border-green-100">
+                  <span className="font-medium">{item.name}</span>
                   {item.quantity && item.price && (
-                    <span className="text-gray-600">
+                    <span className="text-gray-700 bg-white px-2 py-1 rounded-md text-sm border border-green-100">
                       {item.quantity} × {item.price} SEK
                     </span>
                   )}
