@@ -101,33 +101,35 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   const renderOrderDetails = () => {
     if (activity.type !== 'call' || !activity.orderDetails) return null;
     
+    // Check if we actually have order items to display
+    const hasItems = activity.orderDetails.items && activity.orderDetails.items.length > 0;
+    
+    // Debug log to check order details
+    console.log('Order details:', activity.orderDetails);
+    
     return (
-      <div className="mt-3 text-sm bg-white/90 p-3 rounded-md border border-green-200 shadow-sm">
+      <div className="mt-3">
         {activity.orderDetails.totalValue && (
-          <div className="font-bold text-green-700 flex justify-between text-xl mb-3 pb-2 border-b border-green-100">
-            <span>Ordervärde:</span>
-            <span className="bg-green-50 px-3 py-1 rounded-md border border-green-200">
-              {activity.orderDetails.totalValue} SEK
-            </span>
+          <div className="text-2xl font-bold text-green-600 mb-3">
+            {activity.orderDetails.totalValue} SEK
           </div>
         )}
         
-        {activity.orderDetails.items && activity.orderDetails.items.length > 0 && (
-          <div className="mt-1">
-            <p className="font-medium text-gray-700 mb-2">Beställda produkter:</p>
-            <ul className="space-y-2">
-              {activity.orderDetails.items.map((item, index) => (
-                <li key={index} className="flex justify-between items-center bg-green-50/50 p-2 rounded-md border border-green-100">
-                  <span className="font-medium">{item.name}</span>
-                  {item.quantity && item.price && (
-                    <span className="text-gray-700 bg-white px-2 py-1 rounded-md text-sm border border-green-100">
-                      {item.quantity} × {item.price} SEK
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+        {hasItems ? (
+          <div className="space-y-2">
+            {activity.orderDetails.items.map((item, index) => (
+              <div key={index} className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
+                <span className="font-medium">{item.name || "Okänd produkt"}</span>
+                {item.quantity && item.price && (
+                  <span className="text-green-700 font-medium">
+                    {item.quantity} × {item.price} SEK
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
+        ) : (
+          <div className="text-gray-500 italic">Inga produktdetaljer tillgängliga</div>
         )}
       </div>
     );
