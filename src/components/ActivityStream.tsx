@@ -4,13 +4,14 @@ import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Clock } from 'lucide-react';
 
 export const ActivityStream: React.FC = () => {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [newActivities, setNewActivities] = useState<CrmActivity[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const previousActivitiesRef = useRef<CrmActivity[]>([]);
 
   // Function to load activities
@@ -20,6 +21,7 @@ export const ActivityStream: React.FC = () => {
       const data = await crmApi.fetchActivities();
       setActivities(data);
       previousActivitiesRef.current = data;
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to load activities:", error);
     } finally {
@@ -48,8 +50,11 @@ export const ActivityStream: React.FC = () => {
         setActivities(data);
         previousActivitiesRef.current = data;
       }
+      setLastUpdated(new Date());
+      toast.success(`${newItems.length ? newItems.length + " nya aktiviteter hittades" : "Inga nya aktiviteter"}`);
     } catch (error) {
       console.error("Failed to refresh activities:", error);
+      toast.error("Kunde inte uppdatera aktiviteter");
     } finally {
       setRefreshing(false);
     }
@@ -71,12 +76,22 @@ export const ActivityStream: React.FC = () => {
           setActivities(updatedActivities);
           setNewActivities([]);
           previousActivitiesRef.current = updatedActivities;
+          setLastUpdated(new Date());
         }, 3000); // After highlighting, merge them into the main list
       }
     });
     
     return () => unsubscribe();
   }, []);
+
+  // Format the last updated time
+  const formattedLastUpdated = lastUpdated 
+    ? new Intl.DateTimeFormat('sv-SE', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(lastUpdated)
+    : null;
 
   // Render loading skeletons
   if (loading) {
@@ -99,7 +114,15 @@ export const ActivityStream: React.FC = () => {
   return (
     <div className="p-4">
       <div className="mb-4 flex justify-between items-center">
-        <h2 className="font-semibold text-lg">Aktivitetsflöde</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-lg">Aktivitetsflöde</h2>
+          {lastUpdated && (
+            <div className="text-xs flex items-center gap-1 text-gray-500">
+              <Clock size={12} />
+              <span>Uppdaterad: {formattedLastUpdated}</span>
+            </div>
+          )}
+        </div>
         <Button
           variant="outline"
           size="sm"

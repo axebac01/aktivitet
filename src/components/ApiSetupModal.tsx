@@ -58,34 +58,9 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
     setIsValidating(true);
 
     try {
-      // Testa API-anslutningen
-      const authString = btoa(`${credentials.username}:${credentials.password}`);
-      const testUrl = `${credentials.apiUrl}/notes`;
-      
-      try {
-        const response = await fetch(testUrl, { 
-          method: 'HEAD',
-          headers: {
-            'Authorization': `Basic ${authString}`,
-            'X-Schema': credentials.schema
-          },
-          // Använd no-cors mode för att hantera CORS-problem vid validering
-          mode: 'no-cors',
-          // Timeout efter 5 sekunder
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        // Med no-cors får vi inte en ok-status, så vi antar att det fungerar
-        crmApi.setApiCredentials(credentials);
-        onOpenChange(false);
-        toast.success("API-anslutningen är konfigurerad!");
-      } catch (error) {
-        // Vi varnar men sparar ändå
-        console.warn("Kunde inte validera API-URL, sparar ändå:", error);
-        toast.warning("Kunde inte validera API-inställningarna, men de har sparats");
-        crmApi.setApiCredentials(credentials);
-        onOpenChange(false);
-      }
+      crmApi.setApiCredentials(credentials);
+      onOpenChange(false);
+      toast.success("API-anslutningen är konfigurerad!");
     } finally {
       setIsValidating(false);
     }
@@ -156,6 +131,9 @@ export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({
               onChange={(e) => handleInputChange('schema', e.target.value)}
               placeholder="example@001"
             />
+            <div className="col-span-4 text-xs text-gray-500">
+              <p>Schema är ditt licensnamn, t.ex. "example@001"</p>
+            </div>
           </div>
         </div>
         <DialogFooter>

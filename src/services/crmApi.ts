@@ -205,7 +205,7 @@ class CrmApiService {
     };
   }
 
-  // Skapa auth headers för API-anrop
+  // Skapa auth headers för API-anrop - UPPDATERAT enligt API docs
   private getAuthHeaders(): HeadersInit {
     if (!this.credentials) {
       throw new Error("API credentials not set");
@@ -216,7 +216,8 @@ class CrmApiService {
     
     return {
       'Authorization': `Basic ${authString}`,
-      'X-Schema': this.credentials.schema,
+      // Ändrat från X-Schema till schema enligt API-dokumentationen
+      'schema': this.credentials.schema,
     };
   }
 
