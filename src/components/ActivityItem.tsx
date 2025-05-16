@@ -38,7 +38,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     switch (type) {
       case 'note': return <FileText size={18} className="text-crm-blue" />;
       case 'message': return <MessageSquare size={18} className="text-crm-lightBlue" />;
-      case 'call': return <Receipt size={18} className="text-green-600" />; // Changed to Receipt for orders
+      case 'call': return <Receipt size={18} className="text-green-600" />; // Receipt icon for orders
       case 'task': return <CheckSquare size={18} className="text-crm-orange" />;
       default: return <MessageSquare size={18} className="text-crm-darkGray" />;
     }

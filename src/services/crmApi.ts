@@ -107,6 +107,8 @@ interface ApiOrder {
     price?: string;
     totalRowPrice?: string;
   }>;
+  totalExclVat?: string; // Alternative name for totalExVat
+  orderDate?: string;    // Alternative field for created date
 }
 
 // Interface för API svar med pagination
@@ -526,7 +528,7 @@ class CrmApiService {
     
     try {
       console.log("Fetching orders from API");
-      // Get orders sorted by created date, newest first
+      // Get orders sorted by created date or orderDate, newest first
       const response = await fetch(`${this.apiUrl}/orders?sort=created:desc&viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
@@ -551,34 +553,21 @@ class CrmApiService {
         orders = data.data;
       }
       
-      // Also fetch order rows if available
-      for (const order of orders) {
-        try {
-          if (order.id) {
-            const rowsResponse = await fetch(`${this.apiUrl}/orderrows?orderId=${order.id}`, {
-              headers: this.getAuthHeaders(),
-            });
-            
-            if (rowsResponse.ok) {
-              const rowsData = await rowsResponse.json();
-              let rows = [];
-              
-              if (Array.isArray(rowsData)) {
-                rows = rowsData;
-              } else if (rowsData && rowsData.items) {
-                rows = rowsData.items;
-              } else if (rowsData && rowsData.data) {
-                rows = rowsData.data;
-              }
-              
-              order.orderRows = rows;
-              console.log(`Fetched ${rows.length} order rows for order ${order.id}`);
-            } else {
-              console.warn(`Failed to fetch order rows for order ${order.id}`);
+      // Process each order one by one to handle errors with individual order rows
+      for (let i = 0; i < orders.length; i++) {
+        const order = orders[i];
+        if (order.id) {
+          try {
+            // Fetch order rows for this order
+            const orderRows = await this.fetchOrderRowsForOrder(order.id);
+            if (orderRows && orderRows.length > 0) {
+              order.orderRows = orderRows;
+              console.log(`Fetched ${orderRows.length} order rows for order ${order.id}`);
             }
+          } catch (error) {
+            console.error(`Error fetching order rows for order ${order.id}:`, error);
+            // Continue with the next order even if this one fails
           }
-        } catch (error) {
-          console.error(`Error fetching order rows for order ${order.id}:`, error);
         }
       }
       
@@ -588,6 +577,49 @@ class CrmApiService {
       console.error("Error fetching orders:", error);
       // Return empty array instead of throwing to avoid breaking all activities
       console.warn("Using empty orders array due to error");
+      return [];
+    }
+  }
+  
+  // Separate method to fetch order rows for a specific order
+  private async fetchOrderRowsForOrder(orderId: string): Promise<Array<{
+    id?: string;
+    productId?: string;
+    productName?: string;
+    articleNumber?: string;
+    quantity?: number;
+    price?: string;
+    totalRowPrice?: string;
+  }>> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+    
+    try {
+      const rowsResponse = await fetch(`${this.apiUrl}/orderrows?orderId=${orderId}`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!rowsResponse.ok) {
+        const errorText = await rowsResponse.text();
+        console.error(`Order rows API error (${rowsResponse.status}) for order ${orderId}:`, errorText);
+        return [];
+      }
+      
+      const rowsData = await rowsResponse.json();
+      let rows = [];
+      
+      if (Array.isArray(rowsData)) {
+        rows = rowsData;
+      } else if (rowsData && rowsData.items) {
+        rows = rowsData.items;
+      } else if (rowsData && rowsData.data) {
+        rows = rowsData.data;
+      }
+      
+      return rows;
+    } catch (error) {
+      console.error(`Error fetching order rows for order ${orderId}:`, error);
       return [];
     }
   }
@@ -788,9 +820,15 @@ class CrmApiService {
       }
     }
     
+    // Use the appropriate timestamp field - prefer orderDate, then created
+    const timestamp = order.orderDate || order.created || new Date().toISOString();
+    
+    // Get total value ex VAT from appropriate field
+    const totalValue = order.totalExVat || order.totalExclVat || '';
+    
     // Create order details object for display in the UI
     const orderDetails = {
-      totalValue: order.totalExVat,
+      totalValue: totalValue,
       items: order.orderRows?.map(row => ({
         id: row.id,
         name: row.productName || row.articleNumber || 'Ospecificerad produkt',
@@ -803,7 +841,7 @@ class CrmApiService {
       id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
-      timestamp: order.created || new Date().toISOString(), // Ensure we're using the order's created date
+      timestamp: timestamp,
       user: {
         id: order.createdBy || 'unknown',
         name: userName,
