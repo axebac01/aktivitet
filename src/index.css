@@ -97,7 +97,7 @@
 
 @layer components {
   .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg;
+    @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-lg;
   }
 
   .activity-card {
@@ -127,5 +127,17 @@
 }
 
 .glass-morphism {
-  @apply backdrop-blur-md bg-white/80 border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.12)];
+  @apply backdrop-blur-md bg-white/90 border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.08)];
+}
+
+.bg-gradient-blue {
+  @apply bg-gradient-to-r from-crm-blue via-crm-blue to-crm-lightBlue;
+}
+
+.shadow-card {
+  box-shadow: 0 10px 30px -5px rgba(15, 76, 129, 0.1), 0 4px 10px -5px rgba(15, 76, 129, 0.06);
+}
+
+.hover-effect {
+  @apply transition-transform hover:scale-[1.01] hover:shadow-lg duration-300;
 }
