@@ -14,6 +14,8 @@ export const ActivityStream: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const previousActivitiesRef = useRef<CrmActivity[]>([]);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const autoRefreshIntervalRef = useRef<number | null>(null);
 
   // Function to load activities
   const loadActivities = async () => {
@@ -61,6 +63,25 @@ export const ActivityStream: React.FC = () => {
     }
   };
 
+  // Auto-refresh function
+  const setupAutoRefresh = () => {
+    if (autoRefreshIntervalRef.current) {
+      clearInterval(autoRefreshIntervalRef.current);
+      autoRefreshIntervalRef.current = null;
+    }
+
+    if (autoRefresh) {
+      autoRefreshIntervalRef.current = window.setInterval(() => {
+        handleRefresh();
+      }, 30000); // 30 seconds
+    }
+  };
+
+  // Toggle auto-refresh
+  const toggleAutoRefresh = () => {
+    setAutoRefresh(prev => !prev);
+  };
+
   // Initial load and polling setup
   useEffect(() => {
     loadActivities();
@@ -84,6 +105,19 @@ export const ActivityStream: React.FC = () => {
     
     return () => unsubscribe();
   }, []);
+
+  // Setup auto-refresh effect
+  useEffect(() => {
+    setupAutoRefresh();
+    
+    // Clean up on component unmount
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+    };
+  }, [autoRefresh]);
 
   // Format the last updated time
   const formattedLastUpdated = lastUpdated 
@@ -124,18 +158,28 @@ export const ActivityStream: React.FC = () => {
             </div>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw 
-            size={16} 
-            className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} 
-          />
-          Uppdatera
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={autoRefresh ? "default" : "outline"}
+            size="sm"
+            onClick={toggleAutoRefresh}
+            className={autoRefresh ? "bg-orange-500 hover:bg-orange-600" : ""}
+          >
+            {autoRefresh ? "Auto uppdatering på" : "Auto uppdatering av"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw 
+              size={16} 
+              className={`mr-2 ${refreshing ? 'animate-spin' : ''}`} 
+            />
+            Uppdatera
+          </Button>
+        </div>
       </div>
       
       {newActivities.length > 0 && (
