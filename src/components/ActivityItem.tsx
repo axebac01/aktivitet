@@ -121,7 +121,9 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     
     // Try to get items if they exist
     const hasItems = activity.orderDetails.items && Array.isArray(activity.orderDetails.items) && activity.orderDetails.items.length > 0;
-    const productName = activity.orderDetails.productName || "Värderingsrapport tryckt/digital";
+    
+    // Use a default product name since productName doesn't exist in the type
+    const defaultProductName = "Värderingsrapport tryckt/digital";
     
     return (
       <div className="mt-3">
@@ -155,7 +157,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
           </div>
         ) : totalValue && parseFloat(totalValue) > 0 ? (
           <div className="bg-green-50 p-3 rounded-md border border-green-200 flex justify-between items-center">
-            <span className="font-medium">{productName}</span>
+            <span className="font-medium">{defaultProductName}</span>
             <span className="text-green-700 font-medium">1 × {totalValue} SEK</span>
           </div>
         ) : (
