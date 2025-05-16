@@ -113,9 +113,6 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   const renderOrderDetails = () => {
     if (activity.type !== 'call' || !activity.orderDetails) return null;
     
-    console.log('Rendering order details for activity:', activity.id);
-    console.log('Order details structure:', JSON.stringify(activity.orderDetails, null, 2));
-    
     // Get total value directly from orderDetails if available
     const totalValue = activity.orderDetails.totalValue || "0";
     
@@ -174,7 +171,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       }`}
     >
       <Card 
-        className={`border-l-4 hover:shadow-md transition-shadow ${getBorderColor(activity.type)} ${getBgColor(activity.type)}`}
+        className={`border-l-4 activity-card glass-card ${getBorderColor(activity.type)} ${getBgColor(activity.type)}`}
       >
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
@@ -182,7 +179,7 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
               {activity.user.avatar ? (
                 <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
               ) : null}
-              <AvatarFallback className="bg-crm-blue/10 text-crm-blue font-medium">
+              <AvatarFallback className="bg-gradient-blue text-white font-medium">
                 {getInitials(activity.user.name || activity.user.id)}
               </AvatarFallback>
             </Avatar>

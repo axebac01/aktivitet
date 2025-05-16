@@ -103,6 +103,16 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out'
+			},
+			backgroundImage: {
+				'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+				'gradient-soft': 'linear-gradient(60deg, #abecd6 0%, #fbed96 100%)',
+				'gradient-blue': 'linear-gradient(90deg, #0F4C81 0%, #3A75C4 100%)',
+			},
+			boxShadow: {
+				'soft': '0px 4px 20px rgba(0, 0, 0, 0.08)',
+				'card': '0px 8px 24px rgba(0, 0, 0, 0.12)',
+				'elevation': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
 			}
 		}
 	},
