@@ -233,6 +233,8 @@ class CrmApiService {
       customers.forEach(customer => {
         if (customer.id && customer.name) {
           customerMap.set(customer.id, customer.name);
+          // Also log each customer mapping for debugging
+          console.log(`Customer mapping: ID ${customer.id} => ${customer.name}`);
         }
       });
       
@@ -245,10 +247,20 @@ class CrmApiService {
       
       console.log(`Fetched ${notes.length} notes, ${todos.length} todos, ${orders.length} orders`);
       
+      // For debugging, log a sample of each data type
+      if (notes.length > 0) console.log("Sample note:", notes[0]);
+      if (todos.length > 0) console.log("Sample todo:", todos[0]);
+      if (orders.length > 0) console.log("Sample order:", orders[0]);
+      
       // Konvertera och kombinera notes, todos och orders till activities
       const noteActivities = notes.map(note => this.convertNoteToActivity(note, customerMap));
       const todoActivities = todos.map(todo => this.convertTodoToActivity(todo, customerMap));
       const orderActivities = orders.map(order => this.convertOrderToActivity(order, customerMap));
+      
+      // Log samples of converted activities
+      if (noteActivities.length > 0) console.log("Sample converted note:", noteActivities[0]);
+      if (todoActivities.length > 0) console.log("Sample converted todo:", todoActivities[0]);
+      if (orderActivities.length > 0) console.log("Sample converted order:", orderActivities[0]);
       
       // Kombinera och sortera efter created timestamp (nyast först)
       const allActivities = [...noteActivities, ...todoActivities, ...orderActivities].sort(
@@ -261,7 +273,8 @@ class CrmApiService {
         return this.getMockActivities();
       }
       
-      console.info(`Total activities: ${allActivities.length}`);
+      console.log(`Total activities: ${allActivities.length}`);
+      console.log(`Activities with company: ${allActivities.filter(a => a.relatedTo).length}`);
       return allActivities;
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -431,6 +444,8 @@ class CrmApiService {
 
   // Omvandla ApiNote till CrmActivity
   private convertNoteToActivity(note: ApiNote, customerMap: Map<string, string>): CrmActivity {
+    console.log("Converting note to activity:", note);
+    
     // Säkerställ att user finns, annars skapa en default
     const user = note.user || { 
       id: 'unknown',
@@ -443,7 +458,10 @@ class CrmApiService {
     
     if (note.customer && note.customer.id) {
       customerId = note.customer.id.toString();
+      console.log(`Looking up customer name for ID: ${customerId}`);
       const mappedName = customerMap.get(customerId);
+      console.log(`Found mapped name: ${mappedName || 'none'}`);
+      
       if (mappedName) {
         customerName = mappedName;
       } else if (note.customer.name) {
@@ -451,7 +469,7 @@ class CrmApiService {
       }
     }
     
-    return {
+    const activity = {
       id: note.id || `note-${Date.now()}-${Math.random()}`,
       type: 'note',
       content: note.text || 'Ingen text',
@@ -466,10 +484,15 @@ class CrmApiService {
         name: customerName
       } : undefined
     };
+    
+    console.log("Converted note activity:", activity);
+    return activity;
   }
 
   // Omvandla ApiTodo till CrmActivity
   private convertTodoToActivity(todo: ApiTodo, customerMap: Map<string, string>): CrmActivity {
+    console.log("Converting todo to activity:", todo);
+    
     // Säkerställ att user finns, annars skapa en default
     const user = todo.user || { 
       id: 'unknown',
@@ -482,7 +505,10 @@ class CrmApiService {
     
     if (todo.customer && todo.customer.id) {
       customerId = todo.customer.id.toString();
+      console.log(`Looking up customer name for ID: ${customerId}`);
       const mappedName = customerMap.get(customerId);
+      console.log(`Found mapped name: ${mappedName || 'none'}`);
+      
       if (mappedName) {
         customerName = mappedName;
       } else if (todo.customer.name) {
@@ -490,7 +516,7 @@ class CrmApiService {
       }
     }
     
-    return {
+    const activity = {
       id: todo.id || `todo-${Date.now()}-${Math.random()}`,
       type: 'task',
       content: todo.title ? `${todo.title}: ${todo.description || ''}` : (todo.description || 'Ingen beskrivning'),
@@ -505,10 +531,15 @@ class CrmApiService {
         name: customerName
       } : undefined
     };
+    
+    console.log("Converted todo activity:", activity);
+    return activity;
   }
   
   // Omvandla ApiOrder till CrmActivity
   private convertOrderToActivity(order: ApiOrder, customerMap: Map<string, string>): CrmActivity {
+    console.log("Converting order to activity:", order);
+    
     // Säkerställ att user finns, annars skapa en default
     const user = order.user || { 
       id: 'unknown',
@@ -521,7 +552,10 @@ class CrmApiService {
     
     if (order.customer && order.customer.id) {
       customerId = order.customer.id.toString();
+      console.log(`Looking up customer name for ID: ${customerId}`);
       const mappedName = customerMap.get(customerId);
+      console.log(`Found mapped name: ${mappedName || 'none'}`);
+      
       if (mappedName) {
         customerName = mappedName;
       } else if (order.customer.name) {
@@ -529,7 +563,7 @@ class CrmApiService {
       }
     }
     
-    return {
+    const activity = {
       id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
@@ -544,6 +578,9 @@ class CrmApiService {
         name: customerName
       } : undefined
     };
+    
+    console.log("Converted order activity:", activity);
+    return activity;
   }
 
   // Skapa auth headers för API-anrop enligt API-dokumentationen

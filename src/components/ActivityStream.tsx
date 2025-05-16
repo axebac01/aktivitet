@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
@@ -23,6 +22,13 @@ export const ActivityStream: React.FC = () => {
     try {
       const data = await crmApi.fetchActivities();
       console.log("Initial load fetched", data.length, "activities");
+      console.log("Activities with company data:", data.filter(a => a.relatedTo).length);
+      
+      // Log a few sample activities to verify data
+      if (data.length > 0) {
+        console.log("Sample activities:", data.slice(0, 3));
+      }
+      
       setActivities(data);
       previousActivitiesRef.current = data;
       setLastUpdated(new Date());
@@ -47,6 +53,9 @@ export const ActivityStream: React.FC = () => {
     setRefreshing(true);
     try {
       const data = await crmApi.fetchActivities();
+      
+      console.log("Refresh fetched", data.length, "activities");
+      console.log("Activities with company data:", data.filter(a => a.relatedTo).length);
       
       // Find new activities using the improved function
       const newItems = findNewActivities(data, previousActivitiesRef.current);
