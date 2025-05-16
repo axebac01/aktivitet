@@ -31,9 +31,9 @@ interface ApiNote {
   id: string;
   text: string;
   created: string;
-  user: {
-    id: string;
-    name: string;
+  user?: {
+    id?: string;
+    name?: string;
     email?: string;
   };
   customer?: {
@@ -48,9 +48,9 @@ interface ApiTodo {
   title: string;
   description: string;
   triggerDate: string;
-  user: {
-    id: string;
-    name: string;
+  user?: {
+    id?: string;
+    name?: string;
     email?: string;
   };
   customer?: {
@@ -65,13 +65,13 @@ interface ApiOrder {
   orderNumber: string;
   status: string;
   created: string;
-  customer: {
+  customer?: {
     id: string;
     name: string;
   };
-  user: {
-    id: string;
-    name: string;
+  user?: {
+    id?: string;
+    name?: string;
   };
 }
 
@@ -244,6 +244,12 @@ class CrmApiService {
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       
+      // Only use mock data if we didn't get any real activities
+      if (allActivities.length === 0) {
+        console.log("No real activities found, using mock data");
+        return this.getMockActivities();
+      }
+      
       console.log(`Total activities: ${allActivities.length}`);
       return allActivities;
     } catch (error) {
@@ -366,14 +372,20 @@ class CrmApiService {
 
   // Omvandla ApiNote till CrmActivity
   private convertNoteToActivity(note: ApiNote): CrmActivity {
+    // Säkerställ att user finns, annars skapa en default
+    const user = note.user || { 
+      id: 'unknown',
+      name: 'Okänd användare'
+    };
+    
     return {
-      id: note.id,
+      id: note.id || `note-${Date.now()}-${Math.random()}`,
       type: 'note',
-      content: note.text,
-      timestamp: note.created,
+      content: note.text || 'Ingen text',
+      timestamp: note.created || new Date().toISOString(),
       user: {
-        id: note.user.id,
-        name: note.user.name,
+        id: user.id || 'unknown',
+        name: user.name || 'Okänd användare',
       },
       relatedTo: note.customer ? {
         type: 'customer',
@@ -385,14 +397,20 @@ class CrmApiService {
 
   // Omvandla ApiTodo till CrmActivity
   private convertTodoToActivity(todo: ApiTodo): CrmActivity {
+    // Säkerställ att user finns, annars skapa en default
+    const user = todo.user || { 
+      id: 'unknown',
+      name: 'Okänd användare'
+    };
+    
     return {
-      id: todo.id,
+      id: todo.id || `todo-${Date.now()}-${Math.random()}`,
       type: 'task',
-      content: `${todo.title}: ${todo.description}`,
-      timestamp: todo.triggerDate,
+      content: todo.title ? `${todo.title}: ${todo.description || ''}` : (todo.description || 'Ingen beskrivning'),
+      timestamp: todo.triggerDate || new Date().toISOString(),
       user: {
-        id: todo.user.id,
-        name: todo.user.name,
+        id: user.id || 'unknown',
+        name: user.name || 'Okänd användare',
       },
       relatedTo: todo.customer ? {
         type: 'customer',
@@ -404,20 +422,26 @@ class CrmApiService {
   
   // Omvandla ApiOrder till CrmActivity
   private convertOrderToActivity(order: ApiOrder): CrmActivity {
+    // Säkerställ att user finns, annars skapa en default
+    const user = order.user || { 
+      id: 'unknown',
+      name: 'Okänd användare'
+    };
+    
     return {
-      id: `order-${order.id}`, // Unique ID to avoid conflicts
+      id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
-      content: `Order ${order.orderNumber} skapad med status: ${order.status}`,
-      timestamp: order.created,
+      content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,
+      timestamp: order.created || new Date().toISOString(),
       user: {
-        id: order.user.id,
-        name: order.user.name,
+        id: user.id || 'unknown',
+        name: user.name || 'Okänd användare',
       },
-      relatedTo: {
+      relatedTo: order.customer ? {
         type: 'customer',
         id: order.customer.id,
         name: order.customer.name
-      }
+      } : undefined
     };
   }
 
@@ -622,4 +646,3 @@ class CrmApiService {
 
 // Singleton instance
 export const crmApi = new CrmApiService();
-
