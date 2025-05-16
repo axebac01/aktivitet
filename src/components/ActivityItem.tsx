@@ -131,13 +131,23 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
       console.log('First item:', orderItems[0]);
     }
     
-    // Calculate total value if it's not already provided
-    const totalValue = activity.orderDetails.totalValue || 
-      (orderItems ? orderItems.reduce((sum: number, item: any) => {
-        // Make sure we're working with numbers
+    // Calculate total value in a type-safe way
+    let totalValue: string = "0";
+    
+    // First check if total value is already provided
+    if (activity.orderDetails.totalValue) {
+      totalValue = activity.orderDetails.totalValue;
+    } 
+    // Otherwise calculate it from items if available
+    else if (orderItems && orderItems.length > 0) {
+      const calculatedTotal = orderItems.reduce((sum: number, item: OrderItem) => {
+        // Extract totalIncludingVat as a number if it exists
         const itemValue = item.totalIncludingVat ? parseFloat(item.totalIncludingVat) : 0;
         return sum + itemValue;
-      }, 0).toFixed(2) : "0");
+      }, 0);
+      
+      totalValue = calculatedTotal.toFixed(2);
+    }
     
     return (
       <div className="mt-3">
