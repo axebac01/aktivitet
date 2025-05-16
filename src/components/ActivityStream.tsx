@@ -4,8 +4,8 @@ import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Clock } from 'lucide-react';
-import { toast } from '@/components/ui/sonner'; // Corrected import for toast
+import { RefreshCw, Clock, Eye } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 export const ActivityStream: React.FC = () => {
   const [activities, setActivities] = useState<CrmActivity[]>([]);
@@ -22,6 +22,7 @@ export const ActivityStream: React.FC = () => {
     setLoading(true);
     try {
       const data = await crmApi.fetchActivities();
+      console.log("Initial load fetched", data.length, "activities");
       setActivities(data);
       previousActivitiesRef.current = data;
       setLastUpdated(new Date());
@@ -161,11 +162,11 @@ export const ActivityStream: React.FC = () => {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <h2 className="font-semibold text-lg">Aktivitetsflöde</h2>
+          <h2 className="font-semibold text-lg text-crm-navy">Aktivitetsflöde</h2>
           {lastUpdated && (
-            <div className="text-xs flex items-center gap-1 text-gray-500">
+            <div className="text-xs flex items-center gap-1 text-crm-darkGray bg-gray-50 px-2 py-1 rounded-full">
               <Clock size={12} />
               <span>Uppdaterad: {formattedLastUpdated}</span>
             </div>
@@ -176,8 +177,9 @@ export const ActivityStream: React.FC = () => {
             variant={autoRefresh ? "default" : "outline"}
             size="sm"
             onClick={toggleAutoRefresh}
-            className={autoRefresh ? "bg-orange-500 hover:bg-orange-600" : ""}
+            className={autoRefresh ? "bg-crm-orange hover:bg-crm-orange/90 gap-1" : "gap-1"}
           >
+            <Eye size={16} />
             {autoRefresh ? "Auto uppdatering på" : "Auto uppdatering av"}
           </Button>
           <Button
@@ -185,6 +187,7 @@ export const ActivityStream: React.FC = () => {
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
+            className="border-crm-blue text-crm-blue hover:bg-crm-blue/5"
           >
             <RefreshCw 
               size={16} 
@@ -196,9 +199,10 @@ export const ActivityStream: React.FC = () => {
       </div>
       
       {newActivities.length > 0 && (
-        <div className="mb-4">
-          <div className="text-sm font-medium text-crm-blue mb-2">
-            Nya aktiviteter
+        <div className="mb-6 bg-gradient-to-r from-crm-blue/5 to-transparent p-3 rounded-lg border border-crm-blue/20">
+          <div className="text-sm font-medium text-crm-blue mb-2 flex items-center gap-1">
+            <span className="inline-block w-2 h-2 bg-crm-blue rounded-full animate-pulse"></span>
+            Nya aktiviteter ({newActivities.length})
           </div>
           {newActivities.map(activity => (
             <ActivityItem 
@@ -207,16 +211,20 @@ export const ActivityStream: React.FC = () => {
               isNew={true}
             />
           ))}
-          <div className="border-t border-dashed my-4"></div>
+          <div className="border-t border-dashed border-crm-blue/20 my-4"></div>
         </div>
       )}
       
       {activities.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          Inga aktiviteter hittades
+        <div className="text-center py-12 text-crm-darkGray bg-gray-50 rounded-lg border border-gray-100">
+          <div className="flex flex-col items-center gap-2">
+            <MessageSquare size={32} className="text-crm-blue/30" />
+            <p>Inga aktiviteter hittades</p>
+            <p className="text-xs">Aktiviteter kommer visas här när de skapas</p>
+          </div>
         </div>
       ) : (
-        <div>
+        <div className="space-y-1">
           {activities.map(activity => (
             <ActivityItem key={activity.id} activity={activity} />
           ))}
