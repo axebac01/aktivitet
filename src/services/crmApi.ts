@@ -469,7 +469,7 @@ class CrmApiService {
       }
     }
     
-    const activity = {
+    const activity: CrmActivity = {
       id: note.id || `note-${Date.now()}-${Math.random()}`,
       type: 'note',
       content: note.text || 'Ingen text',
@@ -516,7 +516,7 @@ class CrmApiService {
       }
     }
     
-    const activity = {
+    const activity: CrmActivity = {
       id: todo.id || `todo-${Date.now()}-${Math.random()}`,
       type: 'task',
       content: todo.title ? `${todo.title}: ${todo.description || ''}` : (todo.description || 'Ingen beskrivning'),
@@ -563,7 +563,7 @@ class CrmApiService {
       }
     }
     
-    const activity = {
+    const activity: CrmActivity = {
       id: `order-${order.id || Date.now()}`, // Unique ID to avoid conflicts
       type: 'call', // Using 'call' type since we don't have an 'order' type
       content: `Order ${order.orderNumber || 'utan nummer'} skapad med status: ${order.status || 'okänd'}`,

@@ -90,9 +90,6 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
     }
   };
 
-  // Debug output to check if relatedTo information is present
-  console.log("Activity relatedTo data:", activity.relatedTo);
-
   return (
     <div
       className={`mb-4 transition-all ${
