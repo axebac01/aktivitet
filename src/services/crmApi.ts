@@ -1,3 +1,4 @@
+
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -134,6 +135,17 @@ interface ApiUser {
   Lname?: string;      // Keep original field names as fallback
 }
 
+// New interface for salesperson data from dashboard/salesperson endpoint
+interface ApiSalesperson {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  email?: string;
+  userId?: string;
+}
+
 class CrmApiService {
   private apiUrl: string = '';
   private credentials: ApiCredentials | null = null;
@@ -141,6 +153,7 @@ class CrmApiService {
   private listeners: ((activities: CrmActivity[]) => void)[] = [];
   private lastFetchTime: number = 0;
   private userMap: Map<string, string> = new Map(); // Map för att koppla användarID till namn
+  private salespersonMap: Map<string, string> = new Map(); // New map for salespersons
 
   constructor() {
     // Försöker ladda sparade credentials från localStorage
@@ -279,6 +292,9 @@ class CrmApiService {
       const users = await this.fetchUsers();
       console.log(`Fetched ${users.length} users for mapping`);
       
+      // Fetch all salespersons for better user name mapping
+      await this.fetchSalespersons();
+      
       // Create a map of customer IDs to names for quick lookups
       const customerMap = new Map<string, string>();
       customers.forEach(customer => {
@@ -398,6 +414,86 @@ class CrmApiService {
     } catch (error) {
       console.error("Error fetching customers:", error);
       return [];
+    }
+  }
+
+  // New method to fetch salesperson data from dashboard endpoint
+  private async fetchSalespersons(): Promise<void> {
+    if (!this.credentials) {
+      throw new Error("API credentials not set");
+    }
+    
+    try {
+      console.log("Fetching salesperson data from dashboard/salesperson");
+      const response = await fetch(`${this.apiUrl}/dashboard/salesperson`, {
+        headers: this.getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Salesperson API error (${response.status}):`, errorText);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log("Salesperson API response:", data);
+      
+      // Handle different response formats
+      let salespeople: ApiSalesperson[] = [];
+      
+      if (Array.isArray(data)) {
+        salespeople = data;
+      } else if (data && data.items) {
+        salespeople = data.items;
+      } else if (data && data.data) {
+        salespeople = data.data;
+      }
+      
+      // Log actual field names from the first salesperson to help debug
+      if (salespeople.length > 0) {
+        console.log("Sample salesperson object fields:", Object.keys(salespeople[0]));
+        console.log("Sample salesperson object:", salespeople[0]);
+      }
+      
+      // Clear existing map and populate with new data
+      this.salespersonMap.clear();
+      
+      salespeople.forEach(person => {
+        let fullName = '';
+        
+        // Try to get name using different possible fields
+        if (person.fullName) {
+          fullName = person.fullName;
+        } else if (person.name) {
+          fullName = person.name;
+        } else if (person.firstName || person.lastName) {
+          fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim();
+        }
+        
+        if (person.id && fullName) {
+          // Clean and normalize user ID for consistent lookup
+          const userId = person.id.toLowerCase().replace(/@001$/, '');
+          this.salespersonMap.set(userId, fullName);
+          
+          // Also set using email as key if available
+          if (person.email) {
+            const emailId = person.email.toLowerCase().replace(/@.*$/, '');
+            this.salespersonMap.set(emailId, fullName);
+          }
+          
+          // Also set using userId if available and different from id
+          if (person.userId && person.userId !== person.id) {
+            const normalizedUserId = person.userId.toLowerCase().replace(/@001$/, '');
+            this.salespersonMap.set(normalizedUserId, fullName);
+          }
+          
+          console.log(`Salesperson mapping: ID ${userId} => ${fullName}`);
+        }
+      });
+      
+      console.log(`Processed ${salespeople.length} salespersons for mapping`);
+    } catch (error) {
+      console.error("Error fetching salespersons:", error);
     }
   }
 
@@ -626,18 +722,25 @@ class CrmApiService {
 
   // Hitta användarens namn baserat på createdBy
   private getUserName(createdBy?: string): string {
-    if (!createdBy) return createdBy || '';
+    if (!createdBy) return 'Okänd användare';
     
     // Extract the username from the createdBy field and normalize it
     // Remove @001 or similar suffix and convert to lowercase for consistent lookup
     const userId = createdBy.toLowerCase().replace(/@001$/, '');
     
-    // Check if we have a mapping for this user
+    // First check in salesperson map (prioritize this data as it's more likely to be complete)
+    const salespersonName = this.salespersonMap.get(userId);
+    if (salespersonName) {
+      console.log(`Found name in salesperson map for ${userId}: ${salespersonName}`);
+      return salespersonName;
+    }
+    
+    // Then check in user map
     const userName = this.userMap.get(userId);
-    console.log(`Looking up user ${userId}, found: ${userName || 'not found'}`);
+    console.log(`Looking up user ${userId}, found in user map: ${userName || 'not found'}`);
     if (userName) return userName;
     
-    // Return the userId as fallback instead of "Okänd användare"
+    // Return the userId as fallback
     return createdBy; 
   }
 
