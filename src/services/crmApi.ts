@@ -419,7 +419,7 @@ class CrmApiService {
     }
   }
 
-  // Enhanced method to fetch salesperson data with better logging
+  // Fixed method to fetch salesperson data with correct RequestInit typing
   private async fetchSalespersons(): Promise<void> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
@@ -443,11 +443,11 @@ class CrmApiService {
         Authorization: "Basic *** (using exact Postman string)"
       });
       
-      // Create request options exactly as in Postman
-      const requestOptions = {
+      // Create request options with proper TypeScript types
+      const requestOptions: RequestInit = {
         method: "GET",
         headers: myHeaders,
-        redirect: "follow"
+        redirect: "follow" as RequestRedirect // Explicitly cast to RequestRedirect type
       };
       
       // Log the full request that will be made
