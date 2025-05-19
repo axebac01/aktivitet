@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format, parseISO } from 'date-fns';
 import { sv } from 'date-fns/locale';
@@ -40,10 +39,11 @@ export const ActivityItem: React.FC<ActivityItemProps> = ({
   // Format timestamp to a friendly string
   const formattedTime = React.useMemo(() => {
     try {
-      // Parse the ISO string and adjust for the timezone difference
+      // Parse the ISO string
       const date = parseISO(activity.timestamp);
       
       // Format the date using Swedish locale
+      // We're using direct format without timezone adjustment since we want to display local time
       return format(date, 'HH:mm, d MMM', { locale: sv });
     } catch (e) {
       console.error("Date parsing error:", e);

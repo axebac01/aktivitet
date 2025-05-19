@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { crmApi, CrmActivity } from '@/services/crmApi';
 import { ActivityItem } from '@/components/ActivityItem';
@@ -171,7 +172,7 @@ export const ActivityStream: React.FC = () => {
     };
   }, [autoRefresh]);
 
-  // Format the last updated time using swedish locale
+  // Format the last updated time using Swedish locale - without timezone adjustment
   const formattedLastUpdated = lastUpdated 
     ? format(lastUpdated, 'HH:mm:ss', { locale: sv })
     : null;
