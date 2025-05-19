@@ -292,7 +292,10 @@ class CrmApiService {
       console.log(`Fetched ${users.length} users for mapping`);
       
       // Fetch all salespersons for better user name mapping
+      // Added debug log to track if this function is actually being called
+      console.log("About to call fetchSalespersons...");
       await this.fetchSalespersons();
+      console.log("Returned from fetchSalespersons call");
       
       // Create a map of customer IDs to names for quick lookups
       const customerMap = new Map<string, string>();
@@ -423,31 +426,66 @@ class CrmApiService {
     }
     
     try {
-      console.log("Starting salesperson fetch from dashboard/salesperson endpoint");
+      // Explicit debug logging
+      console.log("------ STARTING SALESPERSON FETCH ------");
+      console.log("API URL:", this.apiUrl);
+      console.log("Endpoint: /dashboard/salesperson");
       
       // Creating headers exactly as in the working Postman example
       const myHeaders = new Headers();
       myHeaders.append("schema", this.credentials.schema);
       
-      // Use the exact same authorization string as in Postman if provided, otherwise generate it
-      const authString = "Basic YXBpQDAwMV9hcGk6WndMUDgyMlZpNDkz";
-      myHeaders.append("Authorization", authString);
+      // Use the exact same authorization string as in Postman
+      myHeaders.append("Authorization", "Basic YXBpQDAwMV9hcGk6WndMUDgyMlZpNDkz");
       
-      console.log("Using exact Postman-style headers:", {
+      console.log("Request headers set:", {
         schema: this.credentials.schema,
-        Authorization: "Basic ********" // Not logging the full auth string
+        Authorization: "Basic *** (using exact Postman string)"
       });
       
-      const requestOptions: RequestInit = {
+      // Create request options exactly as in Postman
+      const requestOptions = {
         method: "GET",
         headers: myHeaders,
-        redirect: "follow",
+        redirect: "follow"
       };
       
-      const response = await fetch(`${this.apiUrl}/dashboard/salesperson`, requestOptions);
+      // Log the full request that will be made
+      console.log("Full request:", {
+        url: `${this.apiUrl}/dashboard/salesperson`,
+        method: "GET",
+        headers: {
+          schema: this.credentials.schema,
+          Authorization: "Basic *** (hidden)"
+        }
+      });
       
-      console.log("Salesperson API response status:", response.status);
-      console.log("Salesperson API response headers:", [...response.headers.entries()]);
+      // Make the exact same API call as in Postman
+      console.log("Making fetch request to salesperson endpoint...");
+      
+      // Explicitly log the complete URL being called
+      const fullUrl = `${this.apiUrl}/dashboard/salesperson`;
+      console.log("Full URL being called:", fullUrl);
+      
+      // Use explicit try/catch for the fetch operation
+      let response;
+      try {
+        response = await fetch(fullUrl, requestOptions);
+        console.log("Fetch request completed");
+      } catch (fetchError) {
+        console.error("Fetch operation failed:", fetchError);
+        console.error("Fetch error details:", {
+          name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+          stack: fetchError instanceof Error ? fetchError.stack : undefined
+        });
+        return;
+      }
+      
+      console.log("Salesperson API response received");
+      console.log("Response status:", response.status);
+      console.log("Response status text:", response.statusText);
+      console.log("Response headers:", [...response.headers.entries()]);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -455,17 +493,28 @@ class CrmApiService {
         return;
       }
       
-      // First get the response as text to log the raw response
-      const responseText = await response.text();
-      console.log("Salesperson API raw text response:", responseText);
+      // Get the response as text first to log it
+      let responseText;
+      try {
+        responseText = await response.text();
+        console.log("Response text received, length:", responseText.length);
+        console.log("Response text sample (first 200 chars):", 
+          responseText.length > 200 ? `${responseText.substring(0, 200)}...` : responseText);
+      } catch (textError) {
+        console.error("Error getting response text:", textError);
+        return;
+      }
       
-      // Then parse the JSON (if it's valid JSON)
+      // Then parse the JSON
       let data;
       try {
         data = JSON.parse(responseText);
-        console.log("Salesperson API parsed JSON response:", data);
+        console.log("JSON parse successful");
+        console.log("Data structure type:", Array.isArray(data) ? "Array" : typeof data);
+        console.log("Data sample:", data);
       } catch (jsonError) {
         console.error("Could not parse salesperson response as JSON:", jsonError);
+        console.error("Raw response text that couldn't be parsed:", responseText);
         return;
       }
       
@@ -473,17 +522,23 @@ class CrmApiService {
       let salespeople: ApiSalesperson[] = [];
       
       if (Array.isArray(data)) {
+        console.log("Data is an array with", data.length, "items");
         salespeople = data;
       } else if (data && data.items) {
+        console.log("Data contains items array with", data.items.length, "items");
         salespeople = data.items;
       } else if (data && data.data) {
+        console.log("Data contains data array with", data.data.length, "items");
         salespeople = data.data;
+      } else {
+        console.warn("Unexpected data structure:", data);
       }
       
       // Log actual field names from the first salesperson to help debug
       if (salespeople.length > 0) {
-        console.log("Sample salesperson object fields:", Object.keys(salespeople[0]));
-        console.log("Sample salesperson object:", salespeople[0]);
+        console.log("First salesperson object fields:", Object.keys(salespeople[0]));
+        console.log("First salesperson object:", salespeople[0]);
+        console.log("Number of salespeople found:", salespeople.length);
       } else {
         console.log("No salesperson data found in the response");
       }
@@ -491,44 +546,55 @@ class CrmApiService {
       // Clear existing map and populate with new data
       this.salespersonMap.clear();
       
-      salespeople.forEach(person => {
+      salespeople.forEach((person, index) => {
+        console.log(`Processing salesperson ${index + 1}/${salespeople.length}:`, person);
+        
         let fullName = '';
         
         // Try to get name using different possible fields
         if (person.fullName) {
           fullName = person.fullName;
+          console.log(`Using fullName field: ${fullName}`);
         } else if (person.name) {
           fullName = person.name;
+          console.log(`Using name field: ${fullName}`);
         } else if (person.firstName || person.lastName) {
           fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim();
+          console.log(`Using firstName/lastName fields: ${fullName}`);
         }
         
         if (person.id && fullName) {
           // Clean and normalize user ID for consistent lookup
           const userId = person.id.toLowerCase().replace(/@001$/, '');
           this.salespersonMap.set(userId, fullName);
+          console.log(`Added mapping: ${userId} => ${fullName}`);
           
           // Also set using email as key if available
           if (person.email) {
             const emailId = person.email.toLowerCase().replace(/@.*$/, '');
             this.salespersonMap.set(emailId, fullName);
+            console.log(`Added email mapping: ${emailId} => ${fullName}`);
           }
           
           // Also set using userId if available and different from id
           if (person.userId && person.userId !== person.id) {
             const normalizedUserId = person.userId.toLowerCase().replace(/@001$/, '');
             this.salespersonMap.set(normalizedUserId, fullName);
+            console.log(`Added userId mapping: ${normalizedUserId} => ${fullName}`);
           }
-          
-          console.log(`Salesperson mapping added: ID ${userId} => ${fullName}`);
+        } else {
+          console.log(`Skipping salesperson due to missing id or name:`, person);
         }
       });
       
       console.log(`Processed ${salespeople.length} salespersons for mapping`);
-      console.log("Final salesperson map:", [...this.salespersonMap.entries()]);
+      console.log("Final salesperson map size:", this.salespersonMap.size);
+      console.log("Final salesperson map entries:", [...this.salespersonMap.entries()]);
+      console.log("------ FINISHED SALESPERSON FETCH ------");
     } catch (error) {
+      console.error("------ ERROR IN SALESPERSON FETCH ------");
       console.error("Error fetching salespersons:", error);
-      console.log("Full error details:", { 
+      console.error("Full error details:", { 
         name: error instanceof Error ? error.name : 'Unknown',
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
