@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/sonner";
 
 export interface CrmActivity {
@@ -417,17 +416,20 @@ class CrmApiService {
     }
   }
 
-  // New method to fetch salesperson data from dashboard endpoint
+  // Enhanced method to fetch salesperson data with better logging
   private async fetchSalespersons(): Promise<void> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
     }
     
     try {
-      console.log("Fetching salesperson data from dashboard/salesperson");
+      console.log("Starting salesperson fetch from dashboard/salesperson endpoint");
       const response = await fetch(`${this.apiUrl}/dashboard/salesperson`, {
         headers: this.getAuthHeaders(),
       });
+      
+      console.log("Salesperson API response status:", response.status);
+      console.log("Salesperson API response headers:", [...response.headers.entries()]);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -436,7 +438,7 @@ class CrmApiService {
       }
       
       const data = await response.json();
-      console.log("Salesperson API response:", data);
+      console.log("Salesperson API raw response:", data);
       
       // Handle different response formats
       let salespeople: ApiSalesperson[] = [];
@@ -453,6 +455,8 @@ class CrmApiService {
       if (salespeople.length > 0) {
         console.log("Sample salesperson object fields:", Object.keys(salespeople[0]));
         console.log("Sample salesperson object:", salespeople[0]);
+      } else {
+        console.log("No salesperson data found in the response");
       }
       
       // Clear existing map and populate with new data
@@ -487,13 +491,15 @@ class CrmApiService {
             this.salespersonMap.set(normalizedUserId, fullName);
           }
           
-          console.log(`Salesperson mapping: ID ${userId} => ${fullName}`);
+          console.log(`Salesperson mapping added: ID ${userId} => ${fullName}`);
         }
       });
       
       console.log(`Processed ${salespeople.length} salespersons for mapping`);
+      console.log("Final salesperson map:", [...this.salespersonMap.entries()]);
     } catch (error) {
       console.error("Error fetching salespersons:", error);
+      console.log("Full error details:", { name: error.name, message: error.message, stack: error.stack });
     }
   }
 
@@ -975,7 +981,7 @@ class CrmApiService {
       'schema': this.credentials.schema,
     };
     
-    console.log("Using API headers:", {
+    console.log("Using API headers for request:", {
       Authorization: "Basic ********", // Don't log full auth string
       schema: this.credentials.schema
     });
