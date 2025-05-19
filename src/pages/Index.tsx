@@ -25,14 +25,8 @@ const Index = () => {
       const apiUrl = localStorage.getItem("crm-api-url");
       const apiKey = localStorage.getItem("crm-api-key");
       
-      if (apiUrl && apiKey) {
-        crmApi.setApiCredentials({
-          apiUrl: apiUrl,
-          username: "", // These fields are required by the ApiCredentials interface
-          password: apiKey,
-          schema: ""    // Using apiKey as password based on the implementation
-        });
-      }
+      if (apiUrl) crmApi.setApiUrl(apiUrl);
+      if (apiKey) crmApi.setApiKey(apiKey);
     }
   }, [hasRememberedCredentials]);
   

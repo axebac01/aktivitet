@@ -134,17 +134,6 @@ interface ApiUser {
   Lname?: string;      // Keep original field names as fallback
 }
 
-// New interface for salesperson data from dashboard/salesperson endpoint
-interface ApiSalesperson {
-  id: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  email?: string;
-  userId?: string;
-}
-
 class CrmApiService {
   private apiUrl: string = '';
   private credentials: ApiCredentials | null = null;
@@ -152,7 +141,6 @@ class CrmApiService {
   private listeners: ((activities: CrmActivity[]) => void)[] = [];
   private lastFetchTime: number = 0;
   private userMap: Map<string, string> = new Map(); // Map för att koppla användarID till namn
-  private salespersonMap: Map<string, string> = new Map(); // New map for salespersons
 
   constructor() {
     // Försöker ladda sparade credentials från localStorage
@@ -291,12 +279,6 @@ class CrmApiService {
       const users = await this.fetchUsers();
       console.log(`Fetched ${users.length} users for mapping`);
       
-      // Fetch all salespersons for better user name mapping
-      // Added debug log to track if this function is actually being called
-      console.log("About to call fetchSalespersons...");
-      await this.fetchSalespersons();
-      console.log("Returned from fetchSalespersons call");
-      
       // Create a map of customer IDs to names for quick lookups
       const customerMap = new Map<string, string>();
       customers.forEach(customer => {
@@ -419,212 +401,17 @@ class CrmApiService {
     }
   }
 
-  // Förbättrad metod för att hämta säljpersoner med utökad loggning
-  private async fetchSalespersons(): Promise<void> {
-    if (!this.credentials) {
-      throw new Error("API credentials not set");
-    }
-    
-    try {
-      // Explicit debug logging
-      console.log("------ STARTING SALESPERSON FETCH ------");
-      console.log("API URL:", this.apiUrl);
-      console.log("Endpoint: /dashboard/salesperson");
-      
-      // Skapa exakt samma Authorization som funkar i andra API-anrop
-      const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
-      
-      // Creating headers exactly as in the working API calls
-      const myHeaders = new Headers();
-      myHeaders.append("schema", this.credentials.schema);
-      myHeaders.append("Authorization", `Basic ${authString}`);
-      
-      console.log("Request headers set:", {
-        schema: this.credentials.schema,
-        Authorization: "Basic *** (using encoded credentials)"
-      });
-      
-      // Create request options with proper TypeScript types
-      const requestOptions: RequestInit = {
-        method: "GET",
-        headers: myHeaders,
-        redirect: "follow" as RequestRedirect
-      };
-      
-      // Log the full request that will be made
-      console.log("Full request:", {
-        url: `${this.apiUrl}/dashboard/salesperson`,
-        method: "GET",
-        headers: {
-          schema: this.credentials.schema,
-          Authorization: "Basic *** (hidden)"
-        }
-      });
-      
-      // Make the API call
-      console.log("Making fetch request to salesperson endpoint...");
-      
-      // Explicitly log the complete URL being called
-      const fullUrl = `${this.apiUrl}/dashboard/salesperson`;
-      console.log("Full URL being called:", fullUrl);
-      
-      // Use explicit try/catch for the fetch operation
-      let response;
-      try {
-        response = await fetch(fullUrl, requestOptions);
-        console.log("Fetch request completed");
-      } catch (fetchError) {
-        console.error("Fetch operation failed:", fetchError);
-        console.error("Fetch error details:", {
-          name: fetchError instanceof Error ? fetchError.name : 'Unknown',
-          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
-          stack: fetchError instanceof Error ? fetchError.stack : undefined
-        });
-        return;
-      }
-      
-      console.log("Salesperson API response received");
-      console.log("Response status:", response.status);
-      console.log("Response status text:", response.statusText);
-      console.log("Response headers:", [...response.headers.entries()]);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Salesperson API error (${response.status}):`, errorText);
-        return;
-      }
-      
-      // Get the response as text first to log it
-      let responseText;
-      try {
-        responseText = await response.text();
-        console.log("Response text received, length:", responseText.length);
-        console.log("Response text full:", responseText);
-      } catch (textError) {
-        console.error("Error getting response text:", textError);
-        return;
-      }
-      
-      // Then parse the JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log("JSON parse successful");
-        console.log("Data structure type:", Array.isArray(data) ? "Array" : typeof data);
-        console.log("Data full:", JSON.stringify(data, null, 2));
-      } catch (jsonError) {
-        console.error("Could not parse salesperson response as JSON:", jsonError);
-        console.error("Raw response text that couldn't be parsed:", responseText);
-        return;
-      }
-      
-      // Handle different response formats
-      let salespeople: ApiSalesperson[] = [];
-      
-      if (Array.isArray(data)) {
-        console.log("Data is an array with", data.length, "items");
-        salespeople = data;
-      } else if (data && data.items) {
-        console.log("Data contains items array with", data.items.length, "items");
-        salespeople = data.items;
-      } else if (data && data.data) {
-        console.log("Data contains data array with", data.data.length, "items");
-        salespeople = data.data;
-      } else {
-        console.warn("Unexpected data structure:", data);
-      }
-      
-      // Log actual field names from the first salesperson to help debug
-      if (salespeople.length > 0) {
-        console.log("First salesperson object fields:", Object.keys(salespeople[0]));
-        console.log("First salesperson object:", salespeople[0]);
-        console.log("Number of salespeople found:", salespeople.length);
-        
-        // Log all salespeople for debugging
-        salespeople.forEach((person, index) => {
-          console.log(`Salesperson ${index + 1}/${salespeople.length}:`, person);
-        });
-      } else {
-        console.log("No salesperson data found in the response");
-      }
-      
-      // Om vi kommer hit så fortsätter vi med att mappa användarnamn
-      this.salespersonMap.clear();
-      
-      salespeople.forEach((person, index) => {
-        console.log(`Processing salesperson ${index + 1}/${salespeople.length}:`, person);
-        
-        let fullName = '';
-        
-        // Try to get name using different possible fields
-        if (person.fullName) {
-          fullName = person.fullName;
-          console.log(`Using fullName field: ${fullName}`);
-        } else if (person.name) {
-          fullName = person.name;
-          console.log(`Using name field: ${fullName}`);
-        } else if (person.firstName || person.lastName) {
-          fullName = `${person.firstName || ''} ${person.lastName || ''}`.trim();
-          console.log(`Using firstName/lastName fields: ${fullName}`);
-        }
-        
-        if (person.id && fullName) {
-          // Clean and normalize user ID for consistent lookup
-          const userId = person.id.toLowerCase().replace(/@001$/, '');
-          this.salespersonMap.set(userId, fullName);
-          console.log(`Added mapping: ${userId} => ${fullName}`);
-          
-          // Also set using email as key if available
-          if (person.email) {
-            const emailId = person.email.toLowerCase().replace(/@.*$/, '');
-            this.salespersonMap.set(emailId, fullName);
-            console.log(`Added email mapping: ${emailId} => ${fullName}`);
-          }
-          
-          // Also set using userId if available and different from id
-          if (person.userId && person.userId !== person.id) {
-            const normalizedUserId = person.userId.toLowerCase().replace(/@001$/, '');
-            this.salespersonMap.set(normalizedUserId, fullName);
-            console.log(`Added userId mapping: ${normalizedUserId} => ${fullName}`);
-          }
-        } else {
-          console.log(`Skipping salesperson due to missing id or name:`, person);
-        }
-      });
-      
-      console.log(`Processed ${salespeople.length} salespersons for mapping`);
-      console.log("Final salesperson map size:", this.salespersonMap.size);
-      console.log("Final salesperson map entries:", [...this.salespersonMap.entries()]);
-      console.log("------ FINISHED SALESPERSON FETCH ------");
-    } catch (error) {
-      console.error("------ ERROR IN SALESPERSON FETCH ------");
-      console.error("Error fetching salespersons:", error);
-      console.error("Full error details:", { 
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-    }
-  }
-
-  // Förbättrad metod för att hämta användare från api_users_view med korrekt autentisering
+  // Hämta alla användare från api_users_view
   private async fetchUsers(): Promise<ApiUser[]> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
     }
     
     try {
-      console.log("------ STARTING USER FETCH ------");
-      console.log("API URL:", this.apiUrl);
-      console.log("Endpoint: /api_users_view");
-      
-      // Använd samma autentiseringsmetod som fungerar för andra API-anrop
+      console.log("Fetching users from api_users_view");
       const response = await fetch(`${this.apiUrl}/api_users_view?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
-      
-      console.log("User API response status:", response.status);
-      console.log("User API response headers:", [...response.headers.entries()]);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -632,81 +419,30 @@ class CrmApiService {
         return [];
       }
       
-      // Hämta responsen som text först för att kunna logga den
-      const responseText = await response.text();
-      console.log("Users API response received, length:", responseText.length);
+      const data = await response.json();
+      console.log("Users API response:", data);
       
-      if (responseText.length > 0) {
-        // Visa en begränsad del av svaret för att inte fylla console
-        console.log("Response text sample (first 500 chars):", 
-          responseText.length > 500 ? `${responseText.substring(0, 500)}...` : responseText);
-          
-        // Försök parsa JSON
-        try {
-          const data = JSON.parse(responseText);
-          console.log("Users data structure:", {
-            isArray: Array.isArray(data),
-            hasItemsProperty: data && !!data.items,
-            hasDataProperty: data && !!data.data
-          });
-          
-          // Hantera olika svarsformat från API
-          let users: ApiUser[] = [];
-          
-          if (Array.isArray(data)) {
-            users = data;
-            console.log(`Found ${users.length} users in array format`);
-          } else if (data && data.items) {
-            users = data.items;
-            console.log(`Found ${users.length} users in data.items format`);
-          } else if (data && data.data) {
-            users = data.data;
-            console.log(`Found ${users.length} users in data.data format`);
-          } else {
-            console.warn("Unexpected data structure:", data);
-          }
-          
-          // Logga fältnamn från första användaren för att hjälpa till med debugging
-          if (users.length > 0) {
-            console.log("First user object fields:", Object.keys(users[0]));
-            console.log("First user object:", users[0]);
-            console.log(`Total users found: ${users.length}`);
-            
-            // Logga några användarposter för debugging
-            users.slice(0, 5).forEach((user, i) => {
-              console.log(`User ${i+1}:`, user);
-              // Testa fältnamn för firstname/lastname
-              const availableFields = Object.keys(user).join(", ");
-              console.log(`Available fields: ${availableFields}`);
-              const firstName = user.firstname || user.Fname || '';
-              const lastName = user.lastname || user.Lname || '';
-              console.log(`Name fields: firstname=${!!user.firstname}, Fname=${!!user.Fname}, lastname=${!!user.lastname}, Lname=${!!user.Lname}`);
-              const fullName = `${firstName} ${lastName}`.trim();
-              const userId = user.userid?.toLowerCase().replace(/@001$/, '') || '';
-              console.log(`User mapping would be: ${userId} => ${fullName}`);
-            });
-          }
-          
-          console.log("------ FINISHED USER FETCH ------");
-          return users;
-          
-        } catch (jsonError) {
-          console.error("Could not parse users response as JSON:", jsonError);
-          console.error("Raw response text that couldn't be parsed:", responseText);
-          return [];
-        }
-      } else {
-        console.log("Empty response received from users API");
-        return [];
+      // Hantera olika svarsformat från API
+      let users: ApiUser[] = [];
+      
+      if (Array.isArray(data)) {
+        users = data;
+      } else if (data && data.items) {
+        users = data.items;
+      } else if (data && data.data) {
+        users = data.data;
       }
+      
+      // Log actual field names from the first user to help debug
+      if (users.length > 0) {
+        console.log("Sample user object fields:", Object.keys(users[0]));
+        console.log("Sample user object:", users[0]);
+      }
+      
+      console.log(`Processed ${users.length} users for mapping`);
+      return users;
     } catch (error) {
-      console.error("------ ERROR IN USER FETCH ------");
       console.error("Error fetching users:", error);
-      console.error("Full error details:", {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
       return [];
     }
   }
@@ -890,25 +626,18 @@ class CrmApiService {
 
   // Hitta användarens namn baserat på createdBy
   private getUserName(createdBy?: string): string {
-    if (!createdBy) return 'Okänd användare';
+    if (!createdBy) return createdBy || '';
     
     // Extract the username from the createdBy field and normalize it
     // Remove @001 or similar suffix and convert to lowercase for consistent lookup
     const userId = createdBy.toLowerCase().replace(/@001$/, '');
     
-    // First check in salesperson map (prioritize this data as it's more likely to be complete)
-    const salespersonName = this.salespersonMap.get(userId);
-    if (salespersonName) {
-      console.log(`Found name in salesperson map for ${userId}: ${salespersonName}`);
-      return salespersonName;
-    }
-    
-    // Then check in user map
+    // Check if we have a mapping for this user
     const userName = this.userMap.get(userId);
-    console.log(`Looking up user ${userId}, found in user map: ${userName || 'not found'}`);
+    console.log(`Looking up user ${userId}, found: ${userName || 'not found'}`);
     if (userName) return userName;
     
-    // Return the userId as fallback
+    // Return the userId as fallback instead of "Okänd användare"
     return createdBy; 
   }
 
@@ -1143,7 +872,7 @@ class CrmApiService {
       'schema': this.credentials.schema,
     };
     
-    console.log("Using API headers for request:", {
+    console.log("Using API headers:", {
       Authorization: "Basic ********", // Don't log full auth string
       schema: this.credentials.schema
     });
