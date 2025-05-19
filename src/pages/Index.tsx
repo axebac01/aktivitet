@@ -1,17 +1,19 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActivityStream } from '@/components/ActivityStream';
-import { MessageInput } from '@/components/MessageInput';
 import { ApiSetupModal } from '@/components/ApiSetupModal';
 import { crmApi } from '@/services/crmApi';
 import { Settings, RefreshCw, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
 const Index = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(!crmApi.getApiUrl());
   const {
     toast
   } = useToast();
+  
   const handleRefreshActivities = async () => {
     toast({
       title: "Uppdaterar aktiviteter",
@@ -27,6 +29,7 @@ const Index = () => {
       });
     }, 1500);
   };
+  
   return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/30">
       <header className="bg-white shadow-soft border-b sticky top-0 z-10">
         <div className="container py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
@@ -55,8 +58,6 @@ const Index = () => {
             <div className="flex-1 overflow-y-auto">
               <ActivityStream />
             </div>
-            
-            <MessageInput disabled={!crmApi.getApiUrl()} />
           </CardContent>
         </Card>
       </main>

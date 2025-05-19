@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { ActivityStream } from '@/components/ActivityStream';
-import { MessageInput } from '@/components/MessageInput';
 import { crmApi } from '@/services/crmApi';
 import { ApiSetupModal } from '@/components/ApiSetupModal';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,6 @@ import { Settings } from 'lucide-react';
 
 const Embed = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(!crmApi.getCredentials());
-
-  // Funktion för att uppdatera aktivitetsflödet när ett nytt meddelande skickas
-  const handleMessageSent = () => {
-    // ActivityStream komponenten hanterar uppdateringar automatiskt
-    // genom prenumeration på aktiviteter
-  };
 
   return (
     <div className="h-full flex flex-col glass-card rounded-lg overflow-hidden border shadow-card">
@@ -39,11 +32,6 @@ const Embed = () => {
       <div className="flex-1 overflow-y-auto bg-gradient-to-b from-white to-secondary/30">
         <ActivityStream />
       </div>
-      
-      <MessageInput 
-        disabled={!crmApi.getCredentials()} 
-        onMessageSent={handleMessageSent}
-      />
 
       {/* API Setup Modal */}
       <ApiSetupModal 
