@@ -1,246 +1,168 @@
-import React, { useState, useEffect } from 'react';
+
+import * as React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { crmApi } from "@/services/crmApi";
+import { useToast } from "@/hooks/use-toast";
+
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { crmApi, ApiCredentials } from '@/services/crmApi';
-import { toast } from '@/components/ui/sonner';
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
-interface ApiSetupModalProps {
+// Define the form schema
+const formSchema = z.object({
+  apiUrl: z.string().min(1, { message: "API URL måste anges" }),
+  apiKey: z.string().min(1, { message: "API nyckel måste anges" }),
+  rememberMe: z.boolean().optional().default(false),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+type ApiSetupModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
+};
 
-export const ApiSetupModal: React.FC<ApiSetupModalProps> = ({ 
-  open, 
-  onOpenChange 
-}) => {
-  const [credentials, setCredentials] = useState<ApiCredentials>({
-    username: '',
-    password: '',
-    schema: '',
-    apiUrl: 'https://api.crmdata.se'
-  });
-  const [isValidating, setIsValidating] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success?: boolean;
-    message?: string;
-  } | null>(null);
-
-  // Ladda befintliga inställningar när modal öppnas
-  useEffect(() => {
-    if (open) {
-      const savedCredentials = crmApi.getCredentials();
-      if (savedCredentials) {
-        // Ensure apiUrl is always set to the default value
-        setCredentials({
-          ...savedCredentials,
-          apiUrl: 'https://api.crmdata.se'
-        });
-      }
-      setTestResult(null); // Reset test result when modal opens
-    }
-  }, [open]);
-
-  const handleInputChange = (field: keyof ApiCredentials, value: string) => {
-    setCredentials(prev => ({
-      ...prev,
-      [field]: value
-    }));
+export const ApiSetupModal = ({ open, onOpenChange }: ApiSetupModalProps) => {
+  const { toast } = useToast();
+  
+  // Initialize form with values from localStorage if they exist
+  const savedCredentials = React.useMemo(() => {
+    const rememberMe = localStorage.getItem("crm-remember-me") === "true";
     
-    // Reset test result when credentials change
-    if (testResult) {
-      setTestResult(null);
-    }
-  };
-
-  const handleSave = async () => {
-    // Validera att obligatoriska fält är ifyllda
-    if (!credentials.username.trim() || !credentials.password.trim() || !credentials.schema.trim()) {
-      toast.error("Alla fält är obligatoriska");
-      return;
-    }
-
-    setIsValidating(true);
-
+    return {
+      apiUrl: rememberMe ? localStorage.getItem("crm-api-url") || "" : "",
+      apiKey: rememberMe ? localStorage.getItem("crm-api-key") || "" : "",
+      rememberMe,
+    };
+  }, []);
+  
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: savedCredentials,
+  });
+  
+  const onSubmit = async (values: FormValues) => {
     try {
-      // Om vi inte har testat ännu, gör det innan vi sparar
-      if (!testResult) {
-        const result = await crmApi.testApiConnection();
-        if (!result.success) {
-          setTestResult(result);
-          toast.error("Anslutningen fungerade inte. Kontrollera dina uppgifter.");
-          setIsValidating(false);
-          return;
-        }
-      }
-
-      crmApi.setApiCredentials(credentials);
-      onOpenChange(false);
-      toast.success("API-anslutningen är konfigurerad!");
-    } finally {
-      setIsValidating(false);
-    }
-  };
-
-  const handleTest = async () => {
-    // Validera att obligatoriska fält är ifyllda
-    if (!credentials.username.trim() || !credentials.password.trim() || !credentials.schema.trim()) {
-      toast.error("Alla fält är obligatoriska för att testa anslutningen");
-      return;
-    }
-
-    setIsTesting(true);
-    setTestResult(null);
-
-    try {
-      // Spara temporärt inställningarna för testet
-      const tempCredentials = {...credentials};
+      // Save API settings to the API service
+      crmApi.setApiUrl(values.apiUrl);
+      crmApi.setApiKey(values.apiKey);
       
-      // Testa anslutningen
-      const result = await crmApi.testApiConnection();
-      
-      setTestResult({
-        success: result.success,
-        message: result.message
-      });
-      
-      if (result.success) {
-        toast.success("API-anslutningen fungerar!");
+      // Save to localStorage if remember me is checked
+      if (values.rememberMe) {
+        localStorage.setItem("crm-api-url", values.apiUrl);
+        localStorage.setItem("crm-api-key", values.apiKey);
+        localStorage.setItem("crm-remember-me", "true");
       } else {
-        toast.error("Kunde inte ansluta till API:et");
+        // Clear localStorage if remember me is unchecked
+        localStorage.removeItem("crm-api-url");
+        localStorage.removeItem("crm-api-key");
+        localStorage.removeItem("crm-remember-me");
       }
       
-      console.log("API test details:", result.details);
-    } catch (error) {
-      console.error("Test connection error:", error);
-      setTestResult({
-        success: false,
-        message: `Ett fel uppstod: ${error instanceof Error ? error.message : String(error)}`
+      toast({
+        title: "API-inställningar sparade",
+        description: "Dina API-inställningar har nu sparats",
       });
-      toast.error("Ett oväntat fel uppstod vid test av anslutningen");
-    } finally {
-      setIsTesting(false);
+      
+      // Close the modal
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Ett fel uppstod",
+        description: "Kunde inte spara API-inställningar",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <div className="flex items-center gap-2 justify-center mb-2">
-            <img 
-              src="/lovable-uploads/9a9a0b86-ed92-4cd5-b26f-58b6d9dcb5a1.png" 
-              alt="CRMdata Logo" 
-              className="h-8"
-            />
-          </div>
-          <DialogTitle>CRM API-inställningar</DialogTitle>
+          <DialogTitle>API-inställningar</DialogTitle>
           <DialogDescription>
-            Ange dina CRM API-inloggningsuppgifter för att ansluta till ditt system.
+            Ange API-uppgifter för att ansluta till CRM-systemet.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="api-url">
-              API URL
-            </Label>
-            <Input
-              id="api-url"
-              value={credentials.apiUrl}
-              onChange={(e) => handleInputChange('apiUrl', e.target.value)}
-              placeholder="https://api.crmdata.se"
-              disabled
-              className="bg-gray-50"
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="apiUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>API URL</FormLabel>
+                  <FormControl>
+                    <Input placeholder="https://api.example.com/v1" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    URL till API-tjänsten
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="username">
-              Användarnamn
-            </Label>
-            <Input
-              id="username"
-              value={credentials.username}
-              onChange={(e) => handleInputChange('username', e.target.value)}
-              placeholder="api@001_api"
+            
+            <FormField
+              control={form.control}
+              name="apiKey"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>API nyckel</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="API nyckel" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Nyckel för autentisering mot API
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">
-              Lösenord
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={credentials.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              placeholder="••••••••"
+            
+            <FormField
+              control={form.control}
+              name="rememberMe"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox 
+                      checked={field.value} 
+                      onCheckedChange={field.onChange} 
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Kom ihåg mig</FormLabel>
+                    <FormDescription>
+                      Spara inloggningsuppgifter för nästa besök
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="schema">
-              Schema
-            </Label>
-            <Input
-              id="schema"
-              value={credentials.schema}
-              onChange={(e) => handleInputChange('schema', e.target.value)}
-              placeholder="example@001"
-            />
-          </div>
-          <div className="text-xs bg-blue-50 text-blue-800 p-3 rounded-md border border-blue-100 flex items-start gap-2">
-            <Info size={16} className="text-blue-500 mt-0.5" />
-            <div>
-              <p className="font-medium">API Authentication Information</p>
-              <p>Schema är ditt licensnamn, t.ex. "example@001"</p>
-              <p>Användarnamn har formatet "api@001_api"</p>
-              <p>API:et använder Basic Auth och kräver att alla fält är ifyllda korrekt.</p>
-            </div>
-          </div>
-          
-          {testResult && (
-            <div className={`p-3 rounded-md flex items-start gap-2 ${
-              testResult.success ? 'bg-green-50 text-green-800 border border-green-200' : 
-                                 'bg-red-50 text-red-800 border border-red-200'
-            }`}>
-              {testResult.success ? 
-                <CheckCircle2 size={18} className="text-green-500 mt-0.5" /> : 
-                <AlertCircle size={18} className="text-red-500 mt-0.5" />
-              }
-              <div>
-                <p className="font-medium">{testResult.success ? 'Anslutning lyckades' : 'Anslutningen misslyckades'}</p>
-                <p className="text-sm">{testResult.message}</p>
-              </div>
-            </div>
-          )}
-        </div>
-        <DialogFooter className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleTest} 
-            disabled={isTesting}
-            className="mr-auto"
-          >
-            {isTesting ? "Testar..." : "Testa anslutning"}
-          </Button>
-          <Button 
-            type="submit" 
-            onClick={handleSave} 
-            disabled={isValidating || isTesting}
-            className="bg-crm-orange hover:bg-crm-orange/90"
-          >
-            {isValidating ? "Validerar..." : "Spara inställningar"}
-          </Button>
-        </DialogFooter>
+            
+            <Button type="submit" className="w-full">Spara</Button>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
