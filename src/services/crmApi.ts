@@ -607,17 +607,24 @@ class CrmApiService {
     }
   }
 
-  // Hämta alla användare från api_users_view
+  // Förbättrad metod för att hämta användare från api_users_view med korrekt autentisering
   private async fetchUsers(): Promise<ApiUser[]> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
     }
     
     try {
-      console.log("Fetching users from api_users_view");
+      console.log("------ STARTING USER FETCH ------");
+      console.log("API URL:", this.apiUrl);
+      console.log("Endpoint: /api_users_view");
+      
+      // Använd samma autentiseringsmetod som fungerar för andra API-anrop
       const response = await fetch(`${this.apiUrl}/api_users_view?viewPage=1`, {
         headers: this.getAuthHeaders(),
       });
+      
+      console.log("User API response status:", response.status);
+      console.log("User API response headers:", [...response.headers.entries()]);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -625,30 +632,81 @@ class CrmApiService {
         return [];
       }
       
-      const data = await response.json();
-      console.log("Users API response:", data);
+      // Hämta responsen som text först för att kunna logga den
+      const responseText = await response.text();
+      console.log("Users API response received, length:", responseText.length);
       
-      // Hantera olika svarsformat från API
-      let users: ApiUser[] = [];
-      
-      if (Array.isArray(data)) {
-        users = data;
-      } else if (data && data.items) {
-        users = data.items;
-      } else if (data && data.data) {
-        users = data.data;
+      if (responseText.length > 0) {
+        // Visa en begränsad del av svaret för att inte fylla console
+        console.log("Response text sample (first 500 chars):", 
+          responseText.length > 500 ? `${responseText.substring(0, 500)}...` : responseText);
+          
+        // Försök parsa JSON
+        try {
+          const data = JSON.parse(responseText);
+          console.log("Users data structure:", {
+            isArray: Array.isArray(data),
+            hasItemsProperty: data && !!data.items,
+            hasDataProperty: data && !!data.data
+          });
+          
+          // Hantera olika svarsformat från API
+          let users: ApiUser[] = [];
+          
+          if (Array.isArray(data)) {
+            users = data;
+            console.log(`Found ${users.length} users in array format`);
+          } else if (data && data.items) {
+            users = data.items;
+            console.log(`Found ${users.length} users in data.items format`);
+          } else if (data && data.data) {
+            users = data.data;
+            console.log(`Found ${users.length} users in data.data format`);
+          } else {
+            console.warn("Unexpected data structure:", data);
+          }
+          
+          // Logga fältnamn från första användaren för att hjälpa till med debugging
+          if (users.length > 0) {
+            console.log("First user object fields:", Object.keys(users[0]));
+            console.log("First user object:", users[0]);
+            console.log(`Total users found: ${users.length}`);
+            
+            // Logga några användarposter för debugging
+            users.slice(0, 5).forEach((user, i) => {
+              console.log(`User ${i+1}:`, user);
+              // Testa fältnamn för firstname/lastname
+              const availableFields = Object.keys(user).join(", ");
+              console.log(`Available fields: ${availableFields}`);
+              const firstName = user.firstname || user.Fname || '';
+              const lastName = user.lastname || user.Lname || '';
+              console.log(`Name fields: firstname=${!!user.firstname}, Fname=${!!user.Fname}, lastname=${!!user.lastname}, Lname=${!!user.Lname}`);
+              const fullName = `${firstName} ${lastName}`.trim();
+              const userId = user.userid?.toLowerCase().replace(/@001$/, '') || '';
+              console.log(`User mapping would be: ${userId} => ${fullName}`);
+            });
+          }
+          
+          console.log("------ FINISHED USER FETCH ------");
+          return users;
+          
+        } catch (jsonError) {
+          console.error("Could not parse users response as JSON:", jsonError);
+          console.error("Raw response text that couldn't be parsed:", responseText);
+          return [];
+        }
+      } else {
+        console.log("Empty response received from users API");
+        return [];
       }
-      
-      // Log actual field names from the first user to help debug
-      if (users.length > 0) {
-        console.log("Sample user object fields:", Object.keys(users[0]));
-        console.log("Sample user object:", users[0]);
-      }
-      
-      console.log(`Processed ${users.length} users for mapping`);
-      return users;
     } catch (error) {
+      console.error("------ ERROR IN USER FETCH ------");
       console.error("Error fetching users:", error);
+      console.error("Full error details:", {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return [];
     }
   }
