@@ -424,9 +424,27 @@ class CrmApiService {
     
     try {
       console.log("Starting salesperson fetch from dashboard/salesperson endpoint");
-      const response = await fetch(`${this.apiUrl}/dashboard/salesperson`, {
-        headers: this.getAuthHeaders(),
+      
+      // Creating headers exactly as in the working Postman example
+      const myHeaders = new Headers();
+      myHeaders.append("schema", this.credentials.schema);
+      
+      // Use the exact same authorization string as in Postman if provided, otherwise generate it
+      const authString = "Basic YXBpQDAwMV9hcGk6WndMUDgyMlZpNDkz";
+      myHeaders.append("Authorization", authString);
+      
+      console.log("Using exact Postman-style headers:", {
+        schema: this.credentials.schema,
+        Authorization: "Basic ********" // Not logging the full auth string
       });
+      
+      const requestOptions: RequestInit = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow",
+      };
+      
+      const response = await fetch(`${this.apiUrl}/dashboard/salesperson`, requestOptions);
       
       console.log("Salesperson API response status:", response.status);
       console.log("Salesperson API response headers:", [...response.headers.entries()]);
@@ -437,8 +455,19 @@ class CrmApiService {
         return;
       }
       
-      const data = await response.json();
-      console.log("Salesperson API raw response:", data);
+      // First get the response as text to log the raw response
+      const responseText = await response.text();
+      console.log("Salesperson API raw text response:", responseText);
+      
+      // Then parse the JSON (if it's valid JSON)
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Salesperson API parsed JSON response:", data);
+      } catch (jsonError) {
+        console.error("Could not parse salesperson response as JSON:", jsonError);
+        return;
+      }
       
       // Handle different response formats
       let salespeople: ApiSalesperson[] = [];
@@ -499,7 +528,11 @@ class CrmApiService {
       console.log("Final salesperson map:", [...this.salespersonMap.entries()]);
     } catch (error) {
       console.error("Error fetching salespersons:", error);
-      console.log("Full error details:", { name: error.name, message: error.message, stack: error.stack });
+      console.log("Full error details:", { 
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
     }
   }
 
