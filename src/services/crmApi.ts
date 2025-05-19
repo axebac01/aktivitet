@@ -419,7 +419,7 @@ class CrmApiService {
     }
   }
 
-  // Fixed method to fetch salesperson data with correct RequestInit typing
+  // Förbättrad metod för att hämta säljpersoner med utökad loggning
   private async fetchSalespersons(): Promise<void> {
     if (!this.credentials) {
       throw new Error("API credentials not set");
@@ -431,23 +431,24 @@ class CrmApiService {
       console.log("API URL:", this.apiUrl);
       console.log("Endpoint: /dashboard/salesperson");
       
-      // Creating headers exactly as in the working Postman example
+      // Skapa exakt samma Authorization som funkar i andra API-anrop
+      const authString = btoa(`${this.credentials.username}:${this.credentials.password}`);
+      
+      // Creating headers exactly as in the working API calls
       const myHeaders = new Headers();
       myHeaders.append("schema", this.credentials.schema);
-      
-      // Use the exact same authorization string as in Postman
-      myHeaders.append("Authorization", "Basic YXBpQDAwMV9hcGk6WndMUDgyMlZpNDkz");
+      myHeaders.append("Authorization", `Basic ${authString}`);
       
       console.log("Request headers set:", {
         schema: this.credentials.schema,
-        Authorization: "Basic *** (using exact Postman string)"
+        Authorization: "Basic *** (using encoded credentials)"
       });
       
       // Create request options with proper TypeScript types
       const requestOptions: RequestInit = {
         method: "GET",
         headers: myHeaders,
-        redirect: "follow" as RequestRedirect // Explicitly cast to RequestRedirect type
+        redirect: "follow" as RequestRedirect
       };
       
       // Log the full request that will be made
@@ -460,7 +461,7 @@ class CrmApiService {
         }
       });
       
-      // Make the exact same API call as in Postman
+      // Make the API call
       console.log("Making fetch request to salesperson endpoint...");
       
       // Explicitly log the complete URL being called
@@ -498,8 +499,7 @@ class CrmApiService {
       try {
         responseText = await response.text();
         console.log("Response text received, length:", responseText.length);
-        console.log("Response text sample (first 200 chars):", 
-          responseText.length > 200 ? `${responseText.substring(0, 200)}...` : responseText);
+        console.log("Response text full:", responseText);
       } catch (textError) {
         console.error("Error getting response text:", textError);
         return;
@@ -511,7 +511,7 @@ class CrmApiService {
         data = JSON.parse(responseText);
         console.log("JSON parse successful");
         console.log("Data structure type:", Array.isArray(data) ? "Array" : typeof data);
-        console.log("Data sample:", data);
+        console.log("Data full:", JSON.stringify(data, null, 2));
       } catch (jsonError) {
         console.error("Could not parse salesperson response as JSON:", jsonError);
         console.error("Raw response text that couldn't be parsed:", responseText);
@@ -539,11 +539,16 @@ class CrmApiService {
         console.log("First salesperson object fields:", Object.keys(salespeople[0]));
         console.log("First salesperson object:", salespeople[0]);
         console.log("Number of salespeople found:", salespeople.length);
+        
+        // Log all salespeople for debugging
+        salespeople.forEach((person, index) => {
+          console.log(`Salesperson ${index + 1}/${salespeople.length}:`, person);
+        });
       } else {
         console.log("No salesperson data found in the response");
       }
       
-      // Clear existing map and populate with new data
+      // Om vi kommer hit så fortsätter vi med att mappa användarnamn
       this.salespersonMap.clear();
       
       salespeople.forEach((person, index) => {
