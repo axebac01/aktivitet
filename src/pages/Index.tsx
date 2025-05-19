@@ -1,34 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ActivityStream } from '@/components/ActivityStream';
 import { ApiSetupModal } from '@/components/ApiSetupModal';
 import { crmApi } from '@/services/crmApi';
-import { Settings, RefreshCw } from 'lucide-react';
+import { Settings, RefreshCw, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
-  // Check if we have remembered credentials
-  const hasRememberedCredentials = localStorage.getItem("crm-remember-me") === "true";
-  
-  // Only show settings modal if neither API URL is set nor remembered credentials exist
-  const [isSettingsOpen, setIsSettingsOpen] = useState(
-    !crmApi.getApiUrl() && !hasRememberedCredentials
-  );
-  
-  const { toast } = useToast();
-  
-  // Apply remembered credentials on mount if they exist
-  useEffect(() => {
-    if (hasRememberedCredentials) {
-      const apiUrl = localStorage.getItem("crm-api-url");
-      const apiKey = localStorage.getItem("crm-api-key");
-      
-      if (apiUrl) crmApi.setApiUrl(apiUrl);
-      if (apiKey) crmApi.setApiKey(apiKey);
-    }
-  }, [hasRememberedCredentials]);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(!crmApi.getApiUrl());
+  const {
+    toast
+  } = useToast();
   
   const handleRefreshActivities = async () => {
     toast({
@@ -57,6 +41,7 @@ const Index = () => {
               <Settings className="mr-2 h-4 w-4" />
               API Setup
             </Button>
+            
           </div>
         </div>
       </header>
@@ -65,7 +50,7 @@ const Index = () => {
         <Card className="glass-card border-none shadow-card overflow-hidden">
           <CardHeader className="border-b bg-gradient-blue p-4">
             <CardTitle className="text-2xl font-medium text-white flex items-center">
-              <RefreshCw className="mr-3 h-6 w-6" />
+              <MessageSquare className="mr-3 h-6 w-6" />
               Aktivitetsflöde från CRM
             </CardTitle>
           </CardHeader>
