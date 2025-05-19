@@ -61,9 +61,13 @@ export const ApiSetupModal = ({ open, onOpenChange }: ApiSetupModalProps) => {
   
   const onSubmit = async (values: FormValues) => {
     try {
-      // Save API settings to the API service
-      crmApi.setApiUrl(values.apiUrl);
-      crmApi.setApiKey(values.apiKey);
+      // Save API settings to the API service using the correct method
+      crmApi.setApiCredentials({
+        apiUrl: values.apiUrl,
+        username: "", // These fields are required by the ApiCredentials interface
+        password: values.apiKey,
+        schema: ""    // Using apiKey as password based on the implementation
+      });
       
       // Save to localStorage if remember me is checked
       if (values.rememberMe) {
